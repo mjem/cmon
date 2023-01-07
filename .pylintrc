@@ -1,0 +1,52 @@
+# pylint appears to fail to scan either parent directories, pyproject.tom
+# or setup.cfg
+
+# Just put non-default entries here to make it clearer what's been changed
+
+# pylint can do spell checks too but depends on some OS packages so
+# it's disabled
+
+[main]
+
+[basic]
+
+[classes]
+
+[design]
+max-args = 20
+min-public-methods = 0
+max-attributes = 100
+
+[exceptions]
+
+[format]
+ignore-long-lines=['^\s*(# )?<?https?://\S+>?$']
+max-line-length=100
+indent-string = "\t"
+
+[imports]
+
+[logging]
+
+[messages contro]
+
+[method_args]
+
+[miscellaneous]
+
+[refactoring]
+
+[reports]
+score = false
+
+[similarities]
+
+[spelling]
+#spelling-dict = en_GB
+spelling-private-dict-file = ~/.aspell.en.pws
+
+[string]
+
+[typecheck]
+
+[variables]

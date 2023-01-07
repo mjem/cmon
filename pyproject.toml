@@ -1,0 +1,46 @@
+[project]
+dependancies = [
+	'paramiko',
+	'httpx',
+]
+
+[project.optional-dependencies]
+tests = ['pytest']
+dev = ['invoke', 'pylint', 'pycodestyle', 'pydocstyle', 'mypy']
+# isort, mcgabe
+# (os) enchant, myspell, myspell-en_GB
+
+# The pylint sections do not appear to be used and pylint only uses .pylintrc
+[tool.pylint.format]
+ignore-long-lines=['^\s*(# )?<?https?://\S+>?$']
+max-line-length=100
+indent-string = "\t"
+
+[tool.pylint.reports]
+score = false
+
+# disable pylint messages to avoid clashes with other tools
+# pycodestyle: bad-indentation, bare-except, line-too-long, missing-final-newline, multiple-statements, singleton-comparison, trailing-whitespace, unnecessary-semicolon, unneeded-not, wrong-import-position
+
+# mccabe: too-many-branches
+
+# pydocstyle: missing-module-docstring, missing-class-docstring, missing-function-docstring
+
+# isort: wrong-import-order
+
+[tool.pydocstyle]
+# D107: Missing docstring in __init__
+# D203: 1 blank line required before class docstring
+ignore=['D107', 'D203']
+
+# doesn't work; use "--implicit-optional" command line argument instead
+[tool.mypy]
+no_implicit_optional=false
+
+# not sure if works; use "--sl" command line argument instead
+[tool.isort]
+force_single_line_imports = true
+
+# Not sure if this is the right syntax or if mccabe gives useful results
+[tool.mccabe]
+min=5
