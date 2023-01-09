@@ -19,8 +19,11 @@ def dev_isort(c):
 # --venv -> make virtual env
 # --fix -> yapf/autopep8, isort-fix
 # --release -> run tests, make docs, stamp version info into project files, make release tarball
+# --license -> rebuild license file
+# --3rdparty -> re-download 3rd party files except license (normalise, reset, jquery, bootstrap)
 def dev(c):
 	"""Create activate file."""
+	# 
 	pass
 
 @task

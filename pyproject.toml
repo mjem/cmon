@@ -2,6 +2,7 @@
 dependancies = [
 	'paramiko',
 	'httpx',
+	'jinja2'
 ]
 
 [project.optional-dependencies]

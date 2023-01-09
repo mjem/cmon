@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+	<title>Dashboard</title>
+	<style>
+	 body {
+	   font-family: arial, sans;
+	   /*background-color: black;*/
+	 }
+	 h1, h2, h3, h4 {
+	   color: blue;
+	 }
+	 div.testsuite {
+	   /*background-color: cyan;*/
+	 }
+	 span.target {
+	 }
+	 td {
+	   vertical-align: top;
+	   border: 1px black solid;
+	   background-color: cyan;
+	 }
+	 span.state_GOOD {
+	   color: #00ff00;
+	   background-color: #008000;
+	 }
+	 span.state_FAILED {
+	   color: red;
+	 }
+	</style>
+  </head>
+  <body>
+    <h1>{{dashboard.label}}</h1>{%for test_suite, test_suite_results in testsuites.items()%}
+      <div class="testsuite"><h2>{{test_suite.label}}</h2>
+		<table><tr>
+		{%for target, test_results in test_suite_results.items()%}
+		<td><span class="target"><h3>{{target.__class__.__name__}} {{target.label}}</h3>{%for test, measurement in test_results.items()%}
+		  <h4>Test {{test.label or test.__name__}} <span class="state_{{measurement.state.name}}">{{measurement.state.value}}</span></h4>
+		    <ul>
+              {%for message in measurement.messages%}
+		      <li>message {{message.name}}={{message.value}}</li>{%endfor%}{%for link in target.links()%}
+				<li>link {{link.label}}</li>{%endfor%}
+			</ul>
+		{%endfor%}</span></td>
+		{%- if (loop.index0 % 3) == 2 %}</tr><tr>{%endif%}
+		{%endfor%}</tr></table></div>{%endfor%}
+  </body>
+</html>

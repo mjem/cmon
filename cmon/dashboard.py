@@ -18,9 +18,23 @@ class Dashboard:
 		self.label = label
 
 	def run(self, context:Context) -> {}:
+		"""
+		Return heirarchy of Measurement objects, each containing
+		- state
+		- messages
+		- children
+		- subject (dashboard, testsuite,
+
+		Return map of tuples of (testsuite, test, target): measurement
+
+		Return map of testsuite: (test, target): measurement
+		"""
 		logger.info("Dashboard run")
+		result = {}
 		for suite in self.test_suites.values():
-			suite.run(context=context)
+			result[suite] = suite.run(context=context)
+
+		return result
 
 	def show(self,
 			 target:object) -> None:

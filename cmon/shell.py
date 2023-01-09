@@ -23,3 +23,11 @@ def shell(cmd:str,
 
 	return result
 
+def shell_validate(result):
+	"""Examine a `result` from `shell()`. Return True if all good otherwise an error string."""
+	try:
+		result.check_returncode()
+	except subprocess.CalledProcessError as e:
+		return str(e)
+
+	return True

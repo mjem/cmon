@@ -84,3 +84,10 @@ class Website(Testable):
 			code=response.status_code, len=len(body)))
 
 		return True
+
+	def links(self) -> Iterable[Testable]:
+		if self.server is not None:
+			return [self.server]
+
+		else:
+			return []

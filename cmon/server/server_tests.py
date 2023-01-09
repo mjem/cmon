@@ -11,6 +11,7 @@ from .server import Server
 from .server import ConnectionException
 from ..context import Context
 from ..shell import shell
+from ..shell import shell_validate
 
 logger = logging.getLogger()
 
@@ -25,15 +26,20 @@ def measure_server_ping(target:Server, context:Context):
 		logger.info("Simulating a ping of {s}".format(s=target))
 		return
 
-	result = shell("ping -c 1 " + target.hostname)
+	shelled = shell("ping -c 1 " + target.hostname)
 	# result = shell("ping -c 1 " + target.hostname, verbose=True, echo=True)
 	# logger.info("Ping status code {c}".format(c=result.returncode))
-	result.check_returncode()
+	valid = shell_validate(shelled)
 	# logger.info("Successful ping of " + target.hostname)
 	if context.verbose:
 		logger.info(result.stdout)
 
-	return Measurement(state=MeasurementState.GOOD)
+	if valid is True:
+		return Measurement(state=MeasurementState.GOOD)
+
+	result = Measurement(state="FAILED")
+	result.add_message("ping.{hostname}".format(hostname=target.hostname), valid)
+	return result
 
 measure_server_ping.label = "ping"
 
@@ -126,6 +132,8 @@ def measure_server_ssh_mountpoints(target:Server, context:Context):
 
 	return result
 
+measure_server_ssh_mountpoints.label = "mounts"
+
 def measure_server_ssh_sysinfo(target:Server, context:Context):
 	"""Retreive system info as measurement messages.
 
@@ -137,3 +145,5 @@ def measure_server_ssh_sysinfo(target:Server, context:Context):
 	- disk i/o
 	"""
 	raise NotImplementedError()
+
+measure_server_ssh_sysinfo.label = "sysinfo"

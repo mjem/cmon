@@ -11,6 +11,10 @@ def measure_db_login(target:Database, context:Context):
 	connection = target.connect()
 	return Measurement("GOOD")
 
+measure_db_login.label = "login"
+
 def measure_db_size():
 	"""Measure the total used size of database."""
 	raise NotImplementedError()
+
+measure_db_size.label = "sizes"

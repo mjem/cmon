@@ -23,8 +23,14 @@ def measure_web_urls(target:Website, context:Context):
 	for use_url in use_urls:
 		response = target.get(use_url)
 		check = target.validate(response)
-		if check is not True:
-			result.state = "FAILED"
+		if check is True:
+			result.add_message(use_url, True)
+
+		else:
 			result.add_message(use_url, check)
+			if use_url.required:
+				result.state = "FAILED"
 
 	return result
+
+measure_web_urls.label = "URLs"

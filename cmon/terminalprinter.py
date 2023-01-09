@@ -10,7 +10,7 @@ INDENTATION = "  "
 NEWLINE = "\n"
 SECTION = ":"
 
-class Printer:
+class TerminalPrinter:
 	def __init__(self, target=sys.stdout, indent=0, indentation=INDENTATION):
 		self.target = target
 		self.indent_level = indent
@@ -23,9 +23,13 @@ class Printer:
 			line=line,
 			newline=NEWLINE))
 
-	def begin_section(self, section):
-		"""Start a new section in the heirarchy."""
-		self.write_line(section + SECTION)
+	def begin_section(self, section:str, postfix:str=None):
+		"""Start a new section in the heirarchy.
+
+		`section` gives the section name. `postfix` allows for text after the colon.
+		"""
+		self.write_line(section + SECTION + (" {postfix}".format(
+			postfix=postfix) if postfix is not None else ""))
 		self.indent()
 
 	def end_section(self):
@@ -44,6 +48,7 @@ class Printer:
 			return ""
 
 	def docstring_single(self, obj:Callable) -> str:
+		"""Pull out a bit of an objects docstring."""
 		if obj.__doc__ is not None:
 			docstring = obj.__doc__
 			first_line, _, _ = docstring.partition(NEWLINE)

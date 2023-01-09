@@ -43,6 +43,9 @@ class TestSuite:
 		printer.end_section()
 
 	def run(self, context:Context) -> {}:
+		"""Returns map of (test, target): measurement
+		"""
+		result = {}
 		skip = len(self.targets) == 0 or len(self.tests) == 0
 		logger.info("Testsuite {label} with {cctargets} targets {cctests} tests {action}".format(
 			label="anon" if self.label is None else self.label,
@@ -51,7 +54,7 @@ class TestSuite:
 			action="skip" if skip else "run"))
 
 		if skip:
-			return
+			return result
 
 		for target_name, target in self.targets.items():
 			logger.info("Target {target}".format(target=target_name))
@@ -66,3 +69,7 @@ class TestSuite:
 					test=getattr(test, "label", test.__name__),
 					result=measurement,
 					msgs=len(measurement.messages)))
+
+				result[(test, target)] = measurement
+
+		return result
