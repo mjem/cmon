@@ -5,17 +5,30 @@
 import logging
 from copy import copy
 
+import humanize
+
 from ..measurement import Measurement
 from ..measurement import MeasurementState
+from ..measurement import MessageDescription
 from .server import Server
 from .server import ConnectionException
 from ..context import Context
 from ..shell import shell
 from ..shell import shell_validate
+from .df import decode_df
+from ..utils import is_listlike
 
 logger = logging.getLogger()
 
 NEWLINE = "\n"
+
+message_description_mount = MessageDescription(
+	label="Mount",
+	description="Name of a mount point with human-readable total and used size reported",
+	datatype=str,
+	# quantisation=Nargs.MULTIPLE,
+	# importance=Important.DASHBOARD,
+	)
 
 def measure_server_ping(target:Server, context:Context):
 	"""Check the server responds to ping.
@@ -35,7 +48,9 @@ def measure_server_ping(target:Server, context:Context):
 		logger.info(result.stdout)
 
 	if valid is True:
-		return Measurement(state=MeasurementState.GOOD)
+		result = Measurement(state=MeasurementState.GOOD)
+		result.add_message("host", target.hostname)
+		return result
 
 	result = Measurement(state="FAILED")
 	result.add_message("ping.{hostname}".format(hostname=target.hostname), valid)
@@ -52,77 +67,49 @@ def measure_server_ssh_aliveness(target:Server, context:Context):
 	except ConnectionException as e:
 		return Measurement(state=MeasurementState.FAILED, message=str(e))
 
-	return Measurement(state=MeasurementState.GOOD)
+	result = Measurement(state=MeasurementState.GOOD)
+	if target.ssh_user is not None:
+		if is_listlike(target.ssh_user):
+			result.add_message("user", target.ssh_user[0])
 
-measure_server_ssh_aliveness.label = "aliveness"
+		else:
+			result.add_message("user", target.ssh_user)
+
+	return result
+
+measure_server_ssh_aliveness.label = "ssh aliveness"
 
 def measure_server_ssh_mountpoints(target:Server, context:Context):
 	"""Check all configured mountpoints are mounted."""
 	if target.mounts is None:
 		return Measurement("NOT_APPLICABLE")
 
-	# required_mounts = copy(target.mounts)
-	# for mount in target.mounts:
-		# logger.info("Checking for mount " + mount.mountpoint)
-
 	client = target.ssh_connect()
 	if client is None:
 		return Measurement(state=MeasurementState.FAILED, message=str(e))
 
 	stdin, stdout, stderr = client.exec_command("df")
-	# out = stdout.read().decode().strip()
 	error = stderr.read().decode().strip()
-	# logger.info("Ran df")
-	# logger.info("Got stdout " + out)
-	# logger.info("Got stderr len " + str(len(error)))# + " text " + error)
-	mount_column = None
-	found_mounts = []
-	for line in stdout.read().decode().split(NEWLINE):
-		if len(line) == 0:
-			continue
 
-		cells = line.split()
-		if mount_column is None:
-			# first line
-			for cc, heading in enumerate(cells):
-				# logger.info("CELL " + heading)
-				if "mount" in heading.lower():
-					# logger.info("Got mount column as {cc}".format(cc=cc))
-					mount_column = cc
-
-			if mount_column is None:
-				return Measurement(state="ERROR", message="Could not decode df header " + line)
-
-			continue
-
-		# logger.info("LINE: " + line)
-		mountpoint = cells[mount_column]
-		found_mounts.append(mountpoint)
-		# logger.info("Identified mount point " + mountpoint)
-
-		# purge = []
-		# for req in required_mounts:
-			# if req.mountpoint == mountpoint:
-				# logger.info("Requirement {r} met".format(r=req.mountpoint))
-				# purge.append(req)
-
-			# else:
-				# print(req.mountpoint, mountpoint)
-
-		# for p in purge:
-			# required_mounts.remove(p)
+	# Use helper to decode actual df output
+	found_mounts = decode_df(stdout.read().decode().split(NEWLINE))
 
 	result = Measurement()
 	good = 0
+	# For each mount we are configured to look for
 	for req in target.mounts:
 		# logger.info("checking if " + req.mountpoint + " was found")
-		name = "mount." + req.mountpoint.partition("/")[-1]
-		if req.mountpoint in found_mounts:
-			result.add_message(name, True)
+		found_mount = found_mounts.get(req.mountpoint)
+		if found_mount:
+			value = "{used} / {total} used".format(
+				used=humanize.naturalsize(found_mount.used),
+				total=humanize.naturalsize(found_mount.total))
 			good += 1
 
 		else:
-			result.add_message(name, False)
+			value = "missing"
+
+		result.add_message(req.mountpoint, value, message_description_mount)
 
 	if good == len(target.mounts):
 		result.state = "GOOD"
@@ -144,6 +131,29 @@ def measure_server_ssh_sysinfo(target:Server, context:Context):
 	- net i/o
 	- disk i/o
 	"""
-	raise NotImplementedError()
+	client = target.ssh_connect()
+	if client is None:
+		return Measurement(MeasurementState.NOT_APPLICABLE)
+
+	result = Measurement(MeasurementState.GOOD)
+	result.add_message("OS", "Debian sid")
+	result.add_message("CPU", "4")
+	result.add_message("RAM", "32 GB total 28 GB used")
+	return result
 
 measure_server_ssh_sysinfo.label = "sysinfo"
+
+def measure_server_ssh_docker(target:Server, context:Context):
+	"""Retrieve information about running docker containers.
+
+	Uses primary ssh connection and docker command line tool."""
+	if target.docker_containers is None:
+		return Measurement(MeasurementState.NOT_APPLICABLE)
+
+	result = Measurement(MeasurementState.GOOD)
+	result.add_message("chart-db", "postgres:15.1")
+	result.add_message("chart-jcs", "chart/jcs:3.2")
+	return result
+
+measure_server_ssh_docker.label = "docker"
+

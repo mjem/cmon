@@ -29,8 +29,9 @@ class Server(Testable):
 				 label:str=None,
 				 ssh_user:Union[str,Iterable[str]]=None,
 				 ssh_config:Union[str, Iterable[str]]=None,
-				 mounts:Dict[str,Mount]=None,
-				 important:bool=True):
+				 mounts:Iterable[Mount]=None,
+				 important:bool=True,
+				 docker_containers:Iterable[str]=None):
 		"""
 		Args:
 		- `hostname`: Network hostname for connections
@@ -41,13 +42,20 @@ class Server(Testable):
 		- `important`: If the server is not important then a failure to ping does not
 			result in failing the server tests, although it is recorded in the messages
 		"""
-		super().__init__(label=label)
+		super().__init__(label=label, important=important)
 		self.hostname = hostname
 		self.ssh_user = ssh_user
 		self.mounts = mounts
 		self.ssh_user_clients = {}
 		self.ssh_config_clients = {}
-		self.important = important
+		self.docker_containers = docker_containers
+
+	def __str__(self):
+		if self.label:
+			return "Server {label}".format(label=self.label)
+
+		else:
+			return "Server"
 
 	def ssh_connect_imp(self,
 						hostname,

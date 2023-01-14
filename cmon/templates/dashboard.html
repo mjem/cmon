@@ -1,48 +1,76 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
+	<meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
 	<title>Dashboard</title>
+	<link href="bootstrap.min.css" rel="stylesheet">
 	<style>
-	 body {
-	   font-family: arial, sans;
-	   /*background-color: black;*/
+	 .sidebarx {
+	   height: 100%; /* Full-height: remove this if you want "auto" height */
+	   width: 160px; /* Set the width of the sidebar */
+	   position: fixed; /* Fixed Sidebar (stay in place on scroll) */
+	   z-index: 1; /* Stay on top */
+	   top: 0; /* Stay at the top */
+	   left: 0;
+	   background-color: #111; /* Black */
+	   overflow-x: hidden; /* Disable horizontal scroll */
+	   padding-top: 20px;
+	   margin-top: 60px;
 	 }
-	 h1, h2, h3, h4 {
-	   color: blue;
+	 .mainx {
+	   margin-left: 160px; /* Same as the width of the sidebar */
+	   padding: 0px 10px;
 	 }
-	 div.testsuite {
-	   /*background-color: cyan;*/
-	 }
-	 span.target {
-	 }
-	 td {
-	   vertical-align: top;
-	   border: 1px black solid;
-	   background-color: cyan;
-	 }
-	 span.state_GOOD {
-	   color: #00ff00;
-	   background-color: #008000;
-	 }
-	 span.state_FAILED {
-	   color: red;
+	 .sidebar {
+	   display:none;
 	 }
 	</style>
   </head>
   <body>
-    <h1>{{dashboard.label}}</h1>{%for test_suite, test_suite_results in testsuites.items()%}
-      <div class="testsuite"><h2>{{test_suite.label}}</h2>
-		<table><tr>
-		{%for target, test_results in test_suite_results.items()%}
-		<td><span class="target"><h3>{{target.__class__.__name__}} {{target.label}}</h3>{%for test, measurement in test_results.items()%}
-		  <h4>Test {{test.label or test.__name__}} <span class="state_{{measurement.state.name}}">{{measurement.state.value}}</span></h4>
-		    <ul>
-              {%for message in measurement.messages%}
-		      <li>message {{message.name}}={{message.value}}</li>{%endfor%}{%for link in target.links()%}
-				<li>link {{link.label}}</li>{%endfor%}
-			</ul>
-		{%endfor%}</span></td>
-		{%- if (loop.index0 % 3) == 2 %}</tr><tr>{%endif%}
-		{%endfor%}</tr></table></div>{%endfor%}
+	<script src="bootstrap.min.js"></script>
+	<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+	  <div class="container-fluid">
+		<a class="navbar-brand" href="#">CMON</a>
+		<button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+		  <span class="navbar-toggler-icon"></span>
+		</button>
+		<div class="collapse navbar-collapse" id="navbarSupportedContent">
+		  <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+			<li class="nav-item">
+			  <a class="nav-link active" href="#">Results</a>
+			</li>
+			<li class="nav-item">
+			  <a class="nav-link active" href="#">Design</a>
+			</li>
+			<li class="nav-item">
+			  <a class="nav-link active" href="#">Source</a>
+			</li>
+		  </ul>
+		</div>
+	  </div>
+	</nav>
+	<h1>Dashboard {{dashboard_result.subject.label}} <span class="{{theme.states[dashboard_result.state]}}">{{dashboard_result.state.value}}</span></h1>{%for test_suite_result in dashboard_result.children%}
+	  <h2>Test group {{test_suite_result.subject.label}}<span class="{{theme.states[test_suite_result.state]}}">{{test_suite_result.state.value}}</span></h2>
+	  <div class="container">
+		<div class="row">{%for target_result in test_suite_result.children%}
+		  <div class="col border rounded border-secondary m-1">
+			<h3><!-- target -->{{target_result.subject.__class__.__name__}} {{target_result.subject.label}}<span class="{{theme.states[target_result.state]}}">{{target_result.state.value}}</span></h3>
+			<p>Tests:
+			<ul>{%for test_result in target_result.children%}
+			  <li><!-- test -->{{test_result.subject.label or test_result.subject.__name__}} <span class="{{theme.states[test_result.state]}}">{{test_result.state.value}}</span>
+				<ul>{%for message in test_result.messages%}
+				  <li><!-- message -->{{message.name}}: {{message.value}}</li>{%endfor%}<!-- message -->
+				</ul>
+			  </li>{%endfor%}<!-- test -->
+			</ul></p>
+			{%if target_result.subject.links()|length > 0%}<p>Links:
+			<ul>{%for link in target_result.subject.links()%}
+			  <li>{{link.label}}</li>{%endfor%} <!-- link -->
+			</ul></p>{%endif%}
+		  </div><!-- target -->
+		  {%- if (loop.index0 % 3) == 2 %}</div><div class="row">{%endif%}{%endfor%} <!-- target -->
+		  </div> <!-- row -->
+	  </div><!-- container -->{%endfor%}<!-- test suite -->
   </body>
 </html>

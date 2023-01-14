@@ -23,14 +23,22 @@ def main():
 	parser.add_argument("--output-console",
 						action="store_true",
 						help="Run test suites and show output as text to console")
-	parser.add_argument("--output-html",
+	parser.add_argument("--output-web",
 						metavar="FILE",
 						help="Run test suites and show output as a webpage")
+	parser.add_argument("--output-yaml-config",
+						action="store_true",
+						help="Output YAML-formatted version of config file")
+	parser.add_argument("--output-system-design",
+						action="store_true",
+						help="Output PlantUML formatted system design diagram")
 	parser.add_argument("--verbose",
 						action="store_true",
 						help="More verbose output")
 	parser.add_argument("--config-py",
 						help="Load configuration from python file")
+	parser.add_argument("--config-yaml",
+						help="Load configuration from YAML file")
 	# parser.add_argument("--exclude-tests",
 						# help="List named tests to exclude")
 	# parser.add_argument("--include-tests",
@@ -56,20 +64,27 @@ def main():
 		dashboard.show(TerminalPrinter())
 		parser.exit()
 
-	context=Context(simulate=args.simulate,
-					verbose=args.verbose)
+	if args.output_yaml_config:
+		raise NotImplementedError()
 
-	if args.output_console or args.output_html:
-		result = dashboard.run(context)
+	if args.output_system_design:
+		raise NotImplementedError()
+
+	if args.config_yaml:
+		raise NotImplementedError()
+
+	if args.output_console or args.output_web:
+		result = dashboard.run(Context(simulate=args.simulate,
+									   verbose=args.verbose))
 
 		if args.simulate:
 			parser.exit()
 
 		if args.output_console:
-			terminal_dashboard(dashboard, TerminalPrinter(), result)
+			terminal_dashboard(TerminalPrinter(), result)
 
-		if args.output_html:
-			html_dashboard(dashboard, result, Path(args.output_html))
+		if args.output_web:
+			html_dashboard(result, Path(args.output_web))
 
 		parser.exit()
 

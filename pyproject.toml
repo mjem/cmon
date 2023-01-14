@@ -2,7 +2,8 @@
 dependancies = [
 	'paramiko',
 	'httpx',
-	'jinja2'
+	'jinja2',
+	'humanize',
 ]
 
 [project.optional-dependencies]

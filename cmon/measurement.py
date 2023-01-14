@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
 
-"""Implementation of Measurement class."""
+"""Implementation of measurement classes."""
 
 import logging
 from enum import Enum
 from typing import Iterable
 from typing import Union
+from typing import Callable
+
+from .testable import Testable
 
 logger = logging.getLogger()
 
@@ -14,18 +17,24 @@ class MeasurementState(Enum):
 	NOT_APPLICABLE = "n/a"
 	FAILED = "failed"
 	ERROR = "error"
+	MIXED = "mixed"
+	IN_PROGRESS = "in progress"
 
 MeasurementState.GOOD.description = "Measurement was made and was successful"
 MeasurementState.NOT_APPLICABLE.description = "Measurement was skipped as not relevant"
 MeasurementState.FAILED.description = "Measurement was made but a problem was detected"
-MeasurementState.ERROR.description = "Measurement could not be made due to an error"
+MeasurementState.ERROR.description = "Measurement could not be reliably made due to an error"
+MeasurementState.MIXED.description = "A mixure of good and bad results"
+MeasurementState.IN_PROGRESS.description = "The result is being processed"
 
 class MessageDescription:
-	"""Additional reporting by Measurements to give more info."""
+	"""Metadata about a measurement message."""
 	def __init__(self,
 				 label:str=None,
 				 description:str=None,
-				 # quantisation,  # required, optional or multiple
+				 # quantisation,  # choose between required, optional or multiple
+				 # importance,  # choose between messages shown on the main dashboard
+				 # and messages shown only on the tooltip
 				 datatype:object=str,
 				 unit:str=None):
 		"""Args:
@@ -40,12 +49,11 @@ class MessageDescription:
 		self.unit = unit
 
 class Message:
-	"""Variable result to give more info than simple pass/fail/n/a for a test."""
+	"""Give additional context to a test result."""
 	def __init__(self,
 				 name:str,
 				 value:Union[str, int, float, bool],
 				 description:MessageDescription=None):
-		# children -> might be neater to store results as a tree
 		self.name = name
 		self.value = value
 		self.description = description
@@ -69,20 +77,35 @@ class Measurement:
 	The messages are a set of variable parameters, qualified.
 	"""
 	def __init__(self,
-				 state=None,
-				 messages:Iterable[Message]=None):
+				 state:Union[MeasurementState,str]=MeasurementState.IN_PROGRESS,
+				 subject:Union[Testable,Callable]=None,
+				 messages:Iterable[Message]=None,
+				 children:Iterable["Measurement"]=None):
+		"""Args:
+		- `subject`: The thing we tested
+		- `state`: Overall status of the subject of this measurement
+		- `messages`: Additional text messages giving more data about tests of this subject
+		- `children`: Additional results of components of our `subject`
+		"""
+		self.subject = subject
+		self.state = state
 		if messages is None:
 			self.messages = []
 
 		else:
 			self.messages = messages
 
-		self.state = state
+		if children is None:
+			self.children = []
+
+		else:
+			self.children = children
+
 
 	def get_state(self):
 		return self._state
 
-	def set_state(self, state):
+	def set_state(self, state:Union[MeasurementState,str]):
 		if isinstance(state, str):
 			self._state = MeasurementState[state]
 			# logger.info("measurement set _state " + str(self._state) + " from " + state)
@@ -105,3 +128,50 @@ class Measurement:
 					description:MessageDescription=None):
 		self.messages.append(Message(name=name, value=value, description=description))
 
+	def add_child(self, child:"Measurement"):
+		self.children.append(child)
+
+	def traffic_lights(self):
+		"""Set our state based on our childs state."""
+		if self.children is None or len(self.children) == 0:
+			self.state = MeasurementState.NOT_APPLICABLE
+			return
+
+		good_count = 0  # GOOD
+		bad_count = 0  # either FAILED or ERROR
+		for child in self.children:
+			if child.state is MeasurementState.GOOD:
+				good_count += 1
+
+			elif child.state in (MeasurementState.FAILED, MeasurementState.ERROR):
+				bad_count += 1
+
+		if good_count == len(self.children):
+			self.state = MeasurementState.GOOD
+
+		elif bad_count == len(self.children):
+			self.state = MeasurementState.FAILED
+
+		else:
+			self.state = MeasurementState.MIXED
+
+
+# class TestRun:
+# 	"""Store all the measurements from a run of the tests."""
+# 	def __init__(self,
+# 				 # top_subject:Testable,
+# 				 top_measurement:Measurement,
+# 				 simulate:bool,
+# 				 verbose:bool):
+# 		self.top_subject = top_subject
+# 		self.simulate = simulate
+# 		self.verbose = verbose
+# 		self.execution_start = datetime.utcnow()
+# 		# self.measurements = {}
+# 		self.top_measurement = top_measurement
+
+# 	def __getitem__(self, key):
+# 		return self.measurements[key]
+
+# 	def __setitem(self, key, value):
+# 		self.measurements[key] = value

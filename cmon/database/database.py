@@ -3,6 +3,8 @@
 """Implementation of Database class."""
 
 from enum import Enum
+from typing import Iterable
+
 try:
 	import psycopg2
 except ImportError:
@@ -58,3 +60,11 @@ class Database(Testable):
 											   host=self.host.hostname,
 											   port=self.port)
 		return self.connection
+
+	def links(self) -> Iterable[Testable]:
+		"""Return our linked items for dashboard display."""
+		if self.host is not None:
+			return [self.host]
+
+		else:
+			return []
