@@ -73,7 +73,7 @@ class TestSuite:
 			for test in self.tests:
 				test_result = test(target=target, context=context)
 				assert isinstance(test_result, Measurement), \
-					"Bad result {r} from {t}".format(r=measurement, t=test)
+					"Bad result {r} from {t}".format(r=test_result, t=test)
 				if test_result.state is MeasurementState.NOT_APPLICABLE:
 					continue
 

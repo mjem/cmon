@@ -4,6 +4,7 @@
 
 from pathlib import Path
 from datetime import timedelta
+from typing import Iterable
 
 from ..testable import Testable
 from ..server.server import Server
@@ -14,7 +15,8 @@ class Dataflow(Testable):
 				 server:Server=None,
 				 pattern:str=None,
 				 max_outage: timedelta=None,
-				 label:str=None):
+				 label:str=None,
+				 important:bool=True):
 		"""
 		Args:
 		- `directory`: Directory name to test
@@ -23,5 +25,16 @@ class Dataflow(Testable):
 		- `max_outage`: Only raise an error if no changes within time frame
 		- `label`: Nice name for this flow
 		"""
-		super(Dataflow, self).__init__(label=label)
+		super(Dataflow, self).__init__(label=label, important=important)
+		self.directory = directory
+		self.server = server
+		self.pattern = pattern
+		self.max_outage = max_outage
 
+	def links(self) -> Iterable[Testable]:
+		"""Return our linked items for dashboard display."""
+		if self.server is not None:
+			return [self.server]
+
+		else:
+			return []

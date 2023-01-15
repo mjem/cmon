@@ -27,6 +27,7 @@ class Server(Testable):
 	def __init__(self,
 				 hostname:str,
 				 label:str=None,
+				 description:str=None,
 				 ssh_user:Union[str,Iterable[str]]=None,
 				 ssh_config:Union[str, Iterable[str]]=None,
 				 mounts:Iterable[Mount]=None,
@@ -42,7 +43,7 @@ class Server(Testable):
 		- `important`: If the server is not important then a failure to ping does not
 			result in failing the server tests, although it is recorded in the messages
 		"""
-		super().__init__(label=label, important=important)
+		super().__init__(label=label, description=description, important=important)
 		self.hostname = hostname
 		self.ssh_user = ssh_user
 		self.mounts = mounts

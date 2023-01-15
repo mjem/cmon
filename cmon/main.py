@@ -26,10 +26,13 @@ def main():
 	parser.add_argument("--output-web",
 						metavar="FILE",
 						help="Run test suites and show output as a webpage")
-	parser.add_argument("--output-yaml-config",
+	parser.add_argument("--output-yaml",
+						metavar="FILE",
+						help="Run test suites and show output in YAML format")
+	parser.add_argument("--show-config-yaml",
 						action="store_true",
 						help="Output YAML-formatted version of config file")
-	parser.add_argument("--output-system-design",
+	parser.add_argument("--show-system-design",
 						action="store_true",
 						help="Output PlantUML formatted system design diagram")
 	parser.add_argument("--verbose",
@@ -64,10 +67,10 @@ def main():
 		dashboard.show(TerminalPrinter())
 		parser.exit()
 
-	if args.output_yaml_config:
+	if args.show_config_yaml:
 		raise NotImplementedError()
 
-	if args.output_system_design:
+	if args.show_system_design:
 		raise NotImplementedError()
 
 	if args.config_yaml:

@@ -2,6 +2,7 @@
 
 """Implementation of Database class."""
 
+import logging
 from enum import Enum
 from typing import Iterable
 
@@ -12,6 +13,8 @@ except ImportError:
 
 from ..testable import Testable
 from ..server.server import Server
+
+logger = logging.getLogger("database")
 
 class DatabaseType(Enum):
 	POSTGRES = "postgres"
@@ -54,6 +57,8 @@ class Database(Testable):
 
 	def connect_postgres(self) -> "psycopg2.extensions.connection":
 		if self.connection is None:
+			logger.debug("psycopg2 connect {user}@{host}:{port}/{name}".format(
+				user=self.user, host=self.host.hostname, port=self.port, name=self.database))
 			self.connection = psycopg2.connect(database=self.database,
 											   user=self.user,
 											   password=self.password,

@@ -101,7 +101,6 @@ class Measurement:
 		else:
 			self.children = children
 
-
 	def get_state(self):
 		return self._state
 
@@ -129,6 +128,9 @@ class Measurement:
 		self.messages.append(Message(name=name, value=value, description=description))
 
 	def add_child(self, child:"Measurement"):
+		if self.children is None:
+			self.children = []
+
 		self.children.append(child)
 
 	def traffic_lights(self):

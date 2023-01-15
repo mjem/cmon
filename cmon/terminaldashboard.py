@@ -27,11 +27,11 @@ def terminal_dashboard(output:TerminalPrinter,
 				label=target.label or "anon"))
 			for test_result in target_results.children:
 				test = test_result.subject
-				output.begin_section("{testname}".format(
+				output.begin_section("Test {testname}".format(
 					testname=getattr(test, "label", test.__name__)),
 									 test_result.state.value)
 				for message in test_result.messages:
-					output.write_line("{label}: {value}".format(
+					output.write_line("Message {label}: {value}".format(
 						label=message.name, value=message.value))
 
 				output.end_section()
@@ -41,7 +41,7 @@ def terminal_dashboard(output:TerminalPrinter,
 				link_strs.append(link.label or "anon")
 
 			if len(link_strs) > 0:
-				output.write_line("links: {links}".format(links=", ".join(link_strs)))
+				output.write_line("Links: {links}".format(links=", ".join(link_strs)))
 
 			output.end_section()
 

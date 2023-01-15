@@ -18,15 +18,18 @@ class Dashboard:
 				 test_suites:Dict[str, TestSuite],
 				 nav_title:str=None,
 				 nav_url:str=None,
+				 nav_tooltip:str=None,
 				 label:str=None):
 		"""Args:
 		- `nav_title`: Title text for first item in navigation bar
 		- `nav_url`: Link for first item in navigation bar
+		- `nav_tooltip`: Tooltip for first item in navigation bar
 		- `test_suites`: List of test suites included in this dashboard
 		- `label`: Title for this dashboard
 		"""
 		self.nav_title = nav_title
 		self.nav_url = nav_url
+		self.nav_tooltip = nav_tooltip
 		self.test_suites = test_suites
 		self.label = label
 

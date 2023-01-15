@@ -59,8 +59,7 @@ class Website(Testable):
 		try:
 			response = httpx.get(url)
 		except httpx.ConnectError as e:
-
-			raise ConnectionException(request.url) from e
+			raise ConnectionException(url) from e
 
 		return response
 

@@ -57,6 +57,7 @@ def measure_server_ping(target:Server, context:Context):
 	return result
 
 measure_server_ping.label = "ping"
+measure_server_ping.description = "Check we can ping the server"
 
 def measure_server_ssh_aliveness(target:Server, context:Context):
 	try:
@@ -78,6 +79,7 @@ def measure_server_ssh_aliveness(target:Server, context:Context):
 	return result
 
 measure_server_ssh_aliveness.label = "ssh aliveness"
+measure_server_ssh_aliveness.description = "Check we can ssh into the server"
 
 def measure_server_ssh_mountpoints(target:Server, context:Context):
 	"""Check all configured mountpoints are mounted."""
@@ -120,6 +122,8 @@ def measure_server_ssh_mountpoints(target:Server, context:Context):
 	return result
 
 measure_server_ssh_mountpoints.label = "mounts"
+measure_server_ssh_mountpoints.description = """
+Check all configured mountpoints have a partition mounted"""
 
 def measure_server_ssh_sysinfo(target:Server, context:Context):
 	"""Retreive system info as measurement messages.
@@ -142,6 +146,8 @@ def measure_server_ssh_sysinfo(target:Server, context:Context):
 	return result
 
 measure_server_ssh_sysinfo.label = "sysinfo"
+measure_server_ssh_sysinfo.description = """
+Not implemented - show system information"""
 
 def measure_server_ssh_docker(target:Server, context:Context):
 	"""Retrieve information about running docker containers.
@@ -156,4 +162,4 @@ def measure_server_ssh_docker(target:Server, context:Context):
 	return result
 
 measure_server_ssh_docker.label = "docker"
-
+measure_server_ssh_docker.description = """Report on running docker containers"""

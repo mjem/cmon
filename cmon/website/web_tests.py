@@ -24,7 +24,8 @@ def measure_web_urls(target:Website, context:Context):
 		response = target.get(use_url)
 		check = target.validate(response)
 		if check is True:
-			result.add_message(use_url, "5 ms")
+			result.add_message(use_url, "{ms} ms".format(
+				ms=int(response.elapsed.total_seconds() * 1000)))
 
 		else:
 			result.add_message(use_url, check)

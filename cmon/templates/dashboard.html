@@ -3,62 +3,55 @@
   <head>
 	<meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-	<title>Dashboard</title>
+	<title>Dashboard {{dashboard_result.subject.label}}</title>
 	<link href="bootstrap.min.css" rel="stylesheet">
 	<style>
-	 .sidebarx {
-	   height: 100%; /* Full-height: remove this if you want "auto" height */
-	   width: 160px; /* Set the width of the sidebar */
-	   position: fixed; /* Fixed Sidebar (stay in place on scroll) */
-	   z-index: 1; /* Stay on top */
-	   top: 0; /* Stay at the top */
-	   left: 0;
-	   background-color: #111; /* Black */
-	   overflow-x: hidden; /* Disable horizontal scroll */
-	   padding-top: 20px;
-	   margin-top: 60px;
+	 h2 {
+	   margin-left: 32px;
 	 }
-	 .mainx {
-	   margin-left: 160px; /* Same as the width of the sidebar */
-	   padding: 0px 10px;
+	 ul {
+	   margin-top: 0px;
 	 }
-	 .sidebar {
-	   display:none;
+	 p {
+	   margin-bottom: 0px;
 	 }
 	</style>
   </head>
   <body>
-	<script src="bootstrap.min.js"></script>
+	<script src="bootstrap.bundle.min.js"></script>
 	<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
 	  <div class="container-fluid">
-		<a class="navbar-brand" href="#">CMON</a>
+		<a class="navbar-brand" href="{{dashboard_result.subject.nav_url}}" data-toggle="tooltip" data-placement="bottom" title="{{dashboard_result.subject.nav_tooltip}}">{{dashboard_result.subject.nav_title}}</a>
 		<button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
 		  <span class="navbar-toggler-icon"></span>
 		</button>
 		<div class="collapse navbar-collapse" id="navbarSupportedContent">
 		  <ul class="navbar-nav me-auto mb-2 mb-lg-0">
 			<li class="nav-item">
-			  <a class="nav-link active" href="#">Results</a>
+			  <a class="nav-link active" href="#" data-toggle="tooltip" data-placement="bottom" title="Display results of test run">Results</a>
 			</li>
 			<li class="nav-item">
-			  <a class="nav-link active" href="#">Design</a>
+			  <a class="nav-link active" href="#" data-toggle="tooltip" data-placement="bottom" title="Generate a system design diagram">Design</a>
 			</li>
 			<li class="nav-item">
-			  <a class="nav-link active" href="#">Source</a>
+			  <a class="nav-link active" href="#" data-toggle="tooltip" data-placement="bottom" title="Show configuration file">Source</a>
+			</li>
+			<li class="nav-item">
+			  <a class="nav-link active" href="#" data-toggle="tooltip" data-placement="bottom" title="Show configuration options">Options</a>
 			</li>
 		  </ul>
 		</div>
 	  </div>
 	</nav>
-	<h1>Dashboard {{dashboard_result.subject.label}} <span class="{{theme.states[dashboard_result.state]}}">{{dashboard_result.state.value}}</span></h1>{%for test_suite_result in dashboard_result.children%}
-	  <h2>Test group {{test_suite_result.subject.label}}<span class="{{theme.states[test_suite_result.state]}}">{{test_suite_result.state.value}}</span></h2>
+	<h1>{{theme.icons["Dashboard"]}} Dashboard {{dashboard_result.subject.label}} <span class="{{theme.states[dashboard_result.state]}}">{{dashboard_result.state.value}}</span></h1>{%for test_suite_result in dashboard_result.children%}
+	  <br><h2>{{theme.icons["TestSuite"]}} Test group {{test_suite_result.subject.label}} <span class="{{theme.states[test_suite_result.state]}}">{{test_suite_result.state.value}}</span></h2>
 	  <div class="container">
 		<div class="row">{%for target_result in test_suite_result.children%}
 		  <div class="col border rounded border-secondary m-1">
-			<h3><!-- target -->{{target_result.subject.__class__.__name__}} {{target_result.subject.label}}<span class="{{theme.states[target_result.state]}}">{{target_result.state.value}}</span></h3>
+			<h3><!-- target -->{{theme.icons[target_result.subject.__class__.__name__]}} {{target_result.subject.__class__.__name__}} {{target_result.subject.label}} <span class="{{theme.states[target_result.state]}}">{{target_result.state.value}}</span></h3>
 			<p>Tests:
 			<ul>{%for test_result in target_result.children%}
-			  <li><!-- test -->{{test_result.subject.label or test_result.subject.__name__}} <span class="{{theme.states[test_result.state]}}">{{test_result.state.value}}</span>
+			  <li><!-- test --><span role="button" data-toggle="tooltip" data-placement="right" title="{{test_result.subject.description}}">{{test_result.subject.label or test_result.subject.__name__}} <span class="{{theme.states[test_result.state]}}">{{test_result.state.value}}</span></span>
 				<ul>{%for message in test_result.messages%}
 				  <li><!-- message -->{{message.name}}: {{message.value}}</li>{%endfor%}<!-- message -->
 				</ul>
@@ -72,5 +65,10 @@
 		  {%- if (loop.index0 % 3) == 2 %}</div><div class="row">{%endif%}{%endfor%} <!-- target -->
 		  </div> <!-- row -->
 	  </div><!-- container -->{%endfor%}<!-- test suite -->
+	  <script>
+$(function () {
+	$('[data-toggle="tooltip"]').tooltip()
+})
+	  </script>
   </body>
 </html>
