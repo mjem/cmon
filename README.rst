@@ -56,6 +56,8 @@ Incomplete. Main missing areas are:
 - Project tools (autodocs, autotests, lint) mostly not implements
 - No options for secure password handling for databases
 - Server objects cannot use ssh configuration file sections
+- Sample configuration file and system not implemented
+- No support for Oracle or sqlite3 databases
 
 Copyright
 ---------

@@ -4,6 +4,7 @@
 
 import logging
 from typing import Dict
+from datetime import datetime
 
 from .testsuite import TestSuite
 from .context import Context
@@ -53,6 +54,8 @@ class Dashboard:
 			result.add_child(suite_result)
 
 		result.traffic_lights()
+		result.add_message("Execute start", context.execute_start)
+		result.add_message("Execute stop", datetime.utcnow())
 		return result
 
 	def show(self,

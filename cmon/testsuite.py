@@ -71,6 +71,12 @@ class TestSuite:
 			logger.info("Target {target}".format(target=target_name))
 			target_result = Measurement(subject=target)
 			for test in self.tests:
+				# check if the user has excluded any tests
+				if hasattr(test, "label") and\
+				   context.include_tests is not None and\
+				   test.label not in context.include_tests:
+					continue
+
 				test_result = test(target=target, context=context)
 				assert isinstance(test_result, Measurement), \
 					"Bad result {r} from {t}".format(r=test_result, t=test)
@@ -86,7 +92,8 @@ class TestSuite:
 				target_result.add_child(test_result)
 
 			target_result.traffic_lights()
-			suite_result.add_child(target_result)
+			if len(target_result.children) > 0:
+				suite_result.add_child(target_result)
 
 		suite_result.traffic_lights()
 		assert isinstance(suite_result.subject, TestSuite), type(suite_result)

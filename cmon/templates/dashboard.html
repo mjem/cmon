@@ -44,11 +44,11 @@
 	  </div>
 	</nav>
 	<h1>{{theme.icons["Dashboard"]}} Dashboard {{dashboard_result.subject.label}} <span class="{{theme.states[dashboard_result.state]}}">{{dashboard_result.state.value}}</span></h1>{%for test_suite_result in dashboard_result.children%}
-	  <br><h2>{{theme.icons["TestSuite"]}} Test group {{test_suite_result.subject.label}} <span class="{{theme.states[test_suite_result.state]}}">{{test_suite_result.state.value}}</span></h2>
-	  <div class="container">
+	  <br><h2 data-bs-toggle="collapse" data-bs-target="#collapseExample{{loop.index}}">{{theme.icons["TestSuite"]}} Test group {{test_suite_result.subject.label}} <span class="{{theme.states[test_suite_result.state]}}">{{test_suite_result.state.value}}</span></h2>
+	  <div class="container show" id="collapseExample{{loop.index}}">
 		<div class="row">{%for target_result in test_suite_result.children%}
 		  <div class="col border rounded border-secondary m-1">
-			<h3><!-- target -->{{theme.icons[target_result.subject.__class__.__name__]}} {{target_result.subject.__class__.__name__}} {{target_result.subject.label}} <span class="{{theme.states[target_result.state]}}">{{target_result.state.value}}</span></h3>
+			<p><!-- target -->{{theme.icons[target_result.subject.__class__.__name__]}} {{target_result.subject.__class__.__name__}} {{target_result.subject.label}} <span class="{{theme.states[target_result.state]}}">{{target_result.state.value}}</span></p>
 			<p>Tests:
 			<ul>{%for test_result in target_result.children%}
 			  <li><!-- test --><span role="button" data-toggle="tooltip" data-placement="right" title="{{test_result.subject.description}}">{{test_result.subject.label or test_result.subject.__name__}} <span class="{{theme.states[test_result.state]}}">{{test_result.state.value}}</span></span>
@@ -59,16 +59,23 @@
 			</ul></p>
 			{%if target_result.subject.links()|length > 0%}<p>Links:
 			<ul>{%for link in target_result.subject.links()%}
-			  <li>{{link.label}}</li>{%endfor%} <!-- link -->
+			  <li>{{link.__class__.__name__}} {{link.label}}</li>{%endfor%} <!-- link -->
 			</ul></p>{%endif%}
 		  </div><!-- target -->
 		  {%- if (loop.index0 % 3) == 2 %}</div><div class="row">{%endif%}{%endfor%} <!-- target -->
 		  </div> <!-- row -->
 	  </div><!-- container -->{%endfor%}<!-- test suite -->
+	  {%if dashboard_result.messages|length > 0%}
+	  <p>Dashboard messages
+	  <ul>{%for message in dashboard_result.messages%}
+		<li><!-- message -->{{message.name}}: {{message.value}}</li>{%endfor%}<!-- message -->
+	  </ul>
+	  </p>
+	  {%endif%}
 	  <script>
-$(function () {
-	$('[data-toggle="tooltip"]').tooltip()
-})
+		$(function () {
+		  $('[data-toggle="tooltip"]').tooltip()
+		})
 	  </script>
   </body>
 </html>

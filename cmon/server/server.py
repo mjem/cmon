@@ -45,7 +45,24 @@ class Server(Testable):
 		"""
 		super().__init__(label=label, description=description, important=important)
 		self.hostname = hostname
-		self.ssh_user = ssh_user
+		if ssh_user is None:
+			self.ssh_user = []
+
+		elif is_listlike(ssh_user):
+			self.ssh_user = ssh_user
+
+		else:
+			self.ssh_user = [ssh_user]
+
+		if ssh_config is None:
+			self.ssh_config = []
+
+		elif is_listlike(ssh_config):
+			self.ssh_config = []
+
+		else:
+			self.ssh_config = [ssh_config]
+
 		self.mounts = mounts
 		self.ssh_user_clients = {}
 		self.ssh_config_clients = {}
@@ -109,13 +126,11 @@ class Server(Testable):
 
 		# fail by returning a null if we have no ssh config information
 		# (add test of ssh_config when implemented)
-		if self.ssh_user is None:
-			return None
+		if len(self.ssh_config) > 0:
+			return self.ssh_connect_config(self.ssh_config[0])
 
 		# use first defined `ssh_user`
-		if not is_listlike(self.ssh_user):
-			# single ssh user
-			return self.ssh_connect_user(self.ssh_user)
+		if len(self.ssh_user) > 0:
+			return self.ssh_connect_user(self.ssh_user[0])
 
-		# multiple ssh users available and client didn't specify which so we pick first
-		return self.ssh_connect_user(self.ssh_user[0])
+		return None

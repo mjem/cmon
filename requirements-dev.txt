@@ -1,0 +1,8 @@
+pytest
+invoke
+pylint
+pycodestyle
+pydocstyle
+mypy
+mccabe
+

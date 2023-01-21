@@ -1,14 +1,23 @@
 #!/usr/bin/env python3
 
+import stat
 from pathlib import Path
 from invoke import task
 
 package_dir = Path("cmon")
 source_files = [package_dir, "tasks.py"]
 
+here = Path(__file__).parent
+activate_filename = Path("activate")
+
 def dev_activate(c):
 	"""Make activate script."""
-	pass
+	activate_filename.open("w").write("""#!/bin/bash
+export PYTHONPATH={here}:$PYTHONPATH
+{env}export PATH={here}/bin:$PATH
+""".format(here=here, env="source {here}/env/bin/activate\n".format(here=here) if here.joinpath("env").exists() else ""))
+	activate_filename.chmod(activate_filename.stat().st_mode | stat.S_IEXEC)
+	print("Wrote {activate}".format(activate=activate_filename))
 
 def dev_isort(c):
 	"""Fix imports"""
@@ -19,7 +28,7 @@ def dev_lint_fix(c):
 	pass
 
 def dev_3rdparty(c):
-	"""Download and unpack all 3rd party packages from source.
+	"""Download and unpack 3rd party packages from source.
 
 	(This is for development and upgrading 3rd party files as the files needed to
 	run the tool are included in the normal archive.)
@@ -36,9 +45,11 @@ def dev_license(c):
 	# https://www.gnu.org/licenses/gpl-3.0.rst
 	pass
 
-def dev_env(c):
+def dev_venv(c):
 	"""Create venv with all packages to run, test and develop application."""
-	pass
+	c.run("python3 -m venv env")
+	c.run("env/bin/pip3 install -r requirements.txt")
+	c.run("env/bin/pip3 install -r requirements-dev.txt")
 
 def dev_release(c):
 	"""Prepare a release.
@@ -48,17 +59,29 @@ def dev_release(c):
 	"""
 	pass
 
-@task
-# --activate -> make activate file
-# --venv -> make virtual env
-# --fix -> yapf/autopep8, isort-fix
-# --release -> run tests, make docs, stamp version info into project files, make release tarball
-# --license -> rebuild license file
-# --3rdparty -> re-download 3rd party files except license (normalise, reset, jquery, bootstrap)
-def dev(c):
-	"""Create activate file."""
-	#
-	pass
+@task(help={
+	"activate": "Create activate file",
+	"venv": "Create virtual environmentin 'env' directory"
+	# "fix": "Run code fix tools: yapf? autopep8? isort-fix? grey? something else?"
+	# "release": "Run tests, build docs, stamp version number, make release tarball, check repo is clean",
+	# "license": "Rebuild license file (GPL-3)",
+	# "thirdparty": "Download and unpack 3rd party files modules",
+	})
+def dev(c,
+		activate=True,
+		venv=False,
+		# fix=False,
+		# release=False,
+		# license=False,
+		# thirdparty=False
+		):
+	"""Development options."""
+	if venv:
+		dev_venv(c)
+
+	if activate:
+		dev_activate(c)
+
 
 @task
 def lint(c):

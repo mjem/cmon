@@ -5,6 +5,7 @@
 import logging
 from typing import Iterable
 from typing import Union
+import ssl
 
 from ..testable import Testable
 from ..server.server import ConnectionException
@@ -52,12 +53,14 @@ class Website(Testable):
 		params = None
 		cookies = None
 		auth = None
+		# disable ssl checks because we have self signed certs
+		context = ssl.create_default_context()
 
 		if isinstance(url, URL):
 			url = url.url
 
 		try:
-			response = httpx.get(url)
+			response = httpx.get(url, verify=context)
 		except httpx.ConnectError as e:
 			raise ConnectionException(url) from e
 

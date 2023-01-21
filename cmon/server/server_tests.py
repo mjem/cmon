@@ -35,6 +35,9 @@ def measure_server_ping(target:Server, context:Context):
 
 	Requires a response to an ICMP packet and failure to ping doesn't
 	necessarily mean the server is down."""
+	if len(target.ssh_config) > 0 or len(target.ssh_user) > 0:
+		return Measurement(state=MeasurementState.NOT_APPLICABLE)
+
 	if context.simulate:
 		logger.info("Simulating a ping of {s}".format(s=target))
 		return
@@ -139,26 +142,75 @@ def measure_server_ssh_sysinfo(target:Server, context:Context):
 	if client is None:
 		return Measurement(MeasurementState.NOT_APPLICABLE)
 
+	# Find OS from /etc/os-release file
+	sftp = client.open_sftp()
+	handle = sftp.open("/etc/os-release")
 	result = Measurement(MeasurementState.GOOD)
-	result.add_message("OS", "Debian sid")
-	result.add_message("CPU", "4")
-	result.add_message("RAM", "32 GB total 28 GB used")
+	for line in handle.read().decode().split(NEWLINE):
+		if len(line) == 0 or "=" not in line:
+			continue
+
+		key, _, value = line.partition("=")
+		# print("len",len(line),"key",key,"value",value)
+		if key == "PRETTY_NAME":
+			result.add_message("OS", value.strip("\""))
+
+	# CPU
+	stdin, stdout, stderr = client.exec_command("lscpu")
+	for line in stdout.read().decode().split(NEWLINE):
+		key, _, value = line.partition(":")
+		value = value.lstrip(" ")
+		# print("lscpu key",key,"value",value)
+		if key == "CPU(s)":
+			result.add_message("CPU", value)
+
+	# Memory
+	stdin, stdout, stderr = client.exec_command("free")
+	for line in stdout.read().decode().split(NEWLINE):
+		# print("cells", line.split())
+		cells = line.split()
+		if len(cells) == 0:
+			continue
+
+		if cells[0] == "Mem:":
+			result.add_message("RAM", "{total}M total {used}M used".format(
+				# total=humanize.naturalsize(int(cells[1])*1000),
+				# used=humanize.naturalsize(int(cells[2])*1000)))
+				total=int(cells[1])//1024,
+				used=int(cells[2])//1024))
+
 	return result
 
 measure_server_ssh_sysinfo.label = "sysinfo"
 measure_server_ssh_sysinfo.description = """
-Not implemented - show system information"""
+Show system information"""
 
 def measure_server_ssh_docker(target:Server, context:Context):
 	"""Retrieve information about running docker containers.
 
 	Uses primary ssh connection and docker command line tool."""
+	# Check we have ssh connections configured
 	if target.docker_containers is None:
 		return Measurement(MeasurementState.NOT_APPLICABLE)
 
+	# If ssh connection is not available for some reason then skip
+	client = target.ssh_connect()
+	if client is None:
+		return Measurement(MeasurementState.NOT_APPLICABLE)
+
 	result = Measurement(MeasurementState.GOOD)
-	result.add_message("chart-db", "postgres:15.1")
-	result.add_message("chart-jcs", "chart/jcs:3.2")
+	stdin, stdout, stderr = client.exec_command(
+		"docker ps --format \"{{.Names}},{{.Image}},{{.RunningFor}}\"")
+
+	for line in stdout.read().decode().split(NEWLINE):
+		if len(line) == 0:
+			continue
+
+		print("LINE", line)
+		container_name, image_name, age = line.split(",")
+		result.add_message(container_name, "{image} running since {age}".format(
+			image=image_name, age=age))
+
 	return result
 
 measure_server_ssh_docker.label = "docker"

@@ -1,0 +1,7 @@
+paramiko
+httpx
+jinja2
+humanize
+# psycopg2
+psycopg[binary,pool]
+sqlalchemy==2.0.0rc3
