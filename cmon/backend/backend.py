@@ -19,34 +19,19 @@ from ..utils import is_listlike
 # ssh
 # api
 
-class BackendJobsTest:
+class BackendDb:
 	def __init__(self,
-				 period:timedelta=timedelta(hours=1),
-				 activity:Union[str, Iterable[str]]=None,
+				 name:str,
+				 sql:str,
+				 starttime_offset:timedelta=timedelta(),
 				 min_count:int=1,
-				 description:str=None):
-		self.period = period
-		if activity is None:
-			self.activity = None
-
-		elif is_listlike(activity):
-			self.activity = activity
-
-		else:
-			self.activity = [activity]
-
+				 label:str=None):
+		self.name = name
+		self.sql = sql
+		self.starttime_offset = starttime_offset
 		self.min_count = min_count
-		self.description = description
+		self.label = label
 
-	def message(self) -> str:
-		"""Text to put into jobs test message."""
-		if self.description is not None:
-			return self.description
-
-		return "Jobs {jobs} in {dur}".format(
-			min=self.min_count,
-			jobs=",".join(self.activity),
-			dur=humanize.naturaldelta(self.period))
 
 class Backend(Testable):
 	"""Representation of a CHART environment processing backend."""
@@ -55,11 +40,10 @@ class Backend(Testable):
 				 database:Database=None,
 				 server:Server=None,
 				 dataflows: Iterable[Dataflow]=None,
-				 jobs: Union[BackendJobsTest, Iterable[BackendJobsTest]]=None,
-				 # events=None,
-				 # reports=None,
-				 # timeseries_ap=None,
-				 # timeseries_pus_stats=None,
+				 # jobs: Union[BackendJobsTest, Iterable[BackendJobsTest]]=None,
+				 # events: Iterable[BackendEvents]=[],
+				 # flows: Iterable[BackendFlow]=[],
+				 db_tests: Iterable[BackendDb]=[],
 				 label:str=None,
 				 important:bool=True,
 				 description:str=None):
@@ -75,15 +59,17 @@ class Backend(Testable):
 		else:
 			self.dataflows = [dataflows]
 
-		if jobs is None:
-			self.jobs = []
+		# if jobs is None:
+			# self.jobs = []
 
-		elif is_listlike(jobs):
-			self.jobs = jobs
+		# elif is_listlike(jobs):
+			# self.jobs = jobs
 
-		else:
-			self.jobs = [jobs]
+		# else:
+			# self.jobs = [jobs]
 
+		# self.flows = flows
+		self.db_tests = db_tests
 		# self.events = events
 		# self.reports = reports
 		# self.timeseries_ap = timeseries_ap

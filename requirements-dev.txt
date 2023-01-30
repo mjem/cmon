@@ -5,4 +5,7 @@ pycodestyle
 pydocstyle
 mypy
 mccabe
-
+sphinx
+sphinxcontrib-napoleon
+enum_tools
+sphinx_toolbox

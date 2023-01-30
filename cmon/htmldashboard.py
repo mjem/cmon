@@ -7,12 +7,18 @@ from pathlib import Path
 import shutil
 from typing import Iterable
 from typing import Dict
+from io import StringIO
 
 import jinja2
+
+from pygments import highlight
+from pygments.lexers import PythonLexer
+from pygments.formatters import HtmlFormatter
 
 from .dashboard import Dashboard
 from .measurement import Measurement
 from .measurement import MeasurementState
+from .terminalprinter import TerminalPrinter
 
 logger = logging.getLogger("output")
 
@@ -23,24 +29,36 @@ THIRDPARTY_DIR = HERE.joinpath("3rdparty")
 class Theme:
 	"""Configuration for dashboard function."""
 	def __init__(self,
-				 top_template:Path,
-				 top_output:Path,
+				 pages:Iterable[tuple]=tuple(),
 				 statics:Iterable[Path]=[],
 				 states:Dict[MeasurementState,str]={},
 				 icons={}):
-		self.top_template = top_template
-		self.top_output = top_output
+		"""Args:
+		- `pages`: List of tuples of (template, output file) which are expanded to
+			form output website.
+		- `statics`: List of input resoutces to be copied to output directory.
+		- `states`: CSS classes for each measurement status.
+		- `icons`: Map of subject type against HTML for an icon.
+		"""
+		self.pages = pages
 		self.statics = statics
 		self.states = states
 		self.icons = icons
 
 # HTML web output theme based around bootstrap
 bootstrap_theme = Theme(
-	top_template=TEMPLATE_DIR.joinpath("dashboard.html"),
-	top_output=Path("index.html"),
+	pages=(
+		(TEMPLATE_DIR.joinpath("dashboard.html"), Path("index.html")),
+		(TEMPLATE_DIR.joinpath("sysdes.html"), Path("sysdes.html")),
+		(TEMPLATE_DIR.joinpath("source.html"), Path("source.html")),
+		(TEMPLATE_DIR.joinpath("sysdessource.html"), Path("sysdessource.html")),
+		),
 	statics=(
 		THIRDPARTY_DIR.joinpath("bootstrap-5.3.0-alpha1-dist/css/bootstrap.min.css"),
 		THIRDPARTY_DIR.joinpath("bootstrap-5.3.0-alpha1-dist/js/bootstrap.bundle.min.js"),
+		TEMPLATE_DIR.joinpath("cmon.ico"),
+		TEMPLATE_DIR.joinpath("sysdes.png"),
+		TEMPLATE_DIR.joinpath("sysdes.puml"),
 		# THIRDPARTY_DIR.joinpath("bootstrap-icons-1.10.3/server.svg"),
 	),
 	states={
@@ -84,20 +102,45 @@ bootstrap_theme = Theme(
 		"Website": """<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-globe" viewBox="0 0 16 16">
   <path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8zm7.5-6.923c-.67.204-1.335.82-1.887 1.855A7.97 7.97 0 0 0 5.145 4H7.5V1.077zM4.09 4a9.267 9.267 0 0 1 .64-1.539 6.7 6.7 0 0 1 .597-.933A7.025 7.025 0 0 0 2.255 4H4.09zm-.582 3.5c.03-.877.138-1.718.312-2.5H1.674a6.958 6.958 0 0 0-.656 2.5h2.49zM4.847 5a12.5 12.5 0 0 0-.338 2.5H7.5V5H4.847zM8.5 5v2.5h2.99a12.495 12.495 0 0 0-.337-2.5H8.5zM4.51 8.5a12.5 12.5 0 0 0 .337 2.5H7.5V8.5H4.51zm3.99 0V11h2.653c.187-.765.306-1.608.338-2.5H8.5zM5.145 12c.138.386.295.744.468 1.068.552 1.035 1.218 1.65 1.887 1.855V12H5.145zm.182 2.472a6.696 6.696 0 0 1-.597-.933A9.268 9.268 0 0 1 4.09 12H2.255a7.024 7.024 0 0 0 3.072 2.472zM3.82 11a13.652 13.652 0 0 1-.312-2.5h-2.49c.062.89.291 1.733.656 2.5H3.82zm6.853 3.472A7.024 7.024 0 0 0 13.745 12H11.91a9.27 9.27 0 0 1-.64 1.539 6.688 6.688 0 0 1-.597.933zM8.5 12v2.923c.67-.204 1.335-.82 1.887-1.855.173-.324.33-.682.468-1.068H8.5zm3.68-1h2.146c.365-.767.594-1.61.656-2.5h-2.49a13.65 13.65 0 0 1-.312 2.5zm2.802-3.5a6.959 6.959 0 0 0-.656-2.5H12.18c.174.782.282 1.623.312 2.5h2.49zM11.27 2.461c.247.464.462.98.64 1.539h1.835a7.024 7.024 0 0 0-3.072-2.472c.218.284.418.598.597.933zM10.855 4a7.966 7.966 0 0 0-.468-1.068C9.835 1.897 9.17 1.282 8.5 1.077V4h2.355z"/>
 </svg>""",
+		# Bar chart
+		"Backend": """<svg xmlns="http://www.w3.org/2000/svg" width="24" height="16" fill="currentColor" class="bi bi-bar-chart" viewBox="0 0 16 16">
+  <path d="M4 11H2v3h2v-3zm5-4H7v7h2V7zm5-5v12h-2V2h2zm-2-1a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1h-2zM6 7a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V7zm-5 4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1v-3z"/>
+</svg>""",
 		},
 )
 
-def html_dashboard(dashboard_result:Measurement,
-				   output_dir:Path,
-				   theme:Theme=bootstrap_theme):
+def html_dashboards(dashboards_result:Measurement,
+					output_dir:Path,
+					config_file:Path,
+					theme:Theme=bootstrap_theme):
 	output_dir.mkdir(exist_ok=True)
+	static_count = 0
 	for static in theme.statics:
 		shutil.copy(static, output_dir)
+		static_count += 1
 
-	template = jinja2.Template(theme.top_template.open("r").read())
-	top_output = output_dir.joinpath(theme.top_output)
-	h = top_output.open("w")
-	context = {"dashboard_result": dashboard_result,
-			   "theme": theme}
-	h.write(template.render(context))
-	logger.info("Wrote {o}".format(o=top_output))
+	# Render interpreted configuration into `config` string
+	# config_io = StringIO()
+	# for dashboard in dashboards_result.subject.dashboards.values():
+		# dashboard.show(TerminalPrinter(target=config_io))
+
+	config_html = highlight(config_file.open().read(),
+							PythonLexer(),
+							HtmlFormatter(noclasses=True))
+
+	context = {"dashboards_result": dashboards_result,
+			   "theme": theme,
+			   "source": config_html}
+	page_count = 0
+	for p in theme.pages:
+		page_template, page_output = p
+		logger.info("Rendering {tmpl} to {out}".format(
+			tmpl=page_template, out=page_output))
+		tmpl = jinja2.Template(page_template.open("r").read())
+		out = output_dir.joinpath(page_output)
+		h = out.open("w")
+		h.write(tmpl.render(context))
+		page_count += 1
+
+	logger.info("Wrote {pages} pages {statics} static files to {outdir}".format(
+		pages=page_count, statics=static_count, outdir=output_dir))

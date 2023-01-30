@@ -40,6 +40,11 @@ def dev_3rdparty(c):
 	# https://github.com/twbs/icons/releases/download/v1.10.3/bootstrap-icons-1.10.3.zip
 	pass
 
+def dev_favicon(c):
+	"""Convert favicon file."""
+	c.run("inkscape -w 64 -h 64 -o cmon.ico cmon/3rdparty/bootstrap-icons-1.10.3/speedometer.svg")
+	c.run("convert cmon.png cmon/templates/cmon.ico")
+
 def dev_license(c):
 	"""download and convert the gpl3 license files."""
 	# https://www.gnu.org/licenses/gpl-3.0.rst
@@ -48,6 +53,7 @@ def dev_license(c):
 def dev_venv(c):
 	"""Create venv with all packages to run, test and develop application."""
 	c.run("python3 -m venv env")
+	c.run("env/bin/pip3 install --upgrade pip")
 	c.run("env/bin/pip3 install -r requirements.txt")
 	c.run("env/bin/pip3 install -r requirements-dev.txt")
 
@@ -81,6 +87,10 @@ def dev(c,
 
 	if activate:
 		dev_activate(c)
+
+	# dev_thirdparty()
+	# dev_license()
+	# dev_favicon()
 
 
 @task

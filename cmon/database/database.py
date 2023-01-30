@@ -13,6 +13,10 @@ from ..server.server import Server
 
 logger = logging.getLogger("database")
 
+DIALECTS = (
+	'postgresql',
+)
+
 class DatabaseNoAuth(Exception):
 	pass
 
@@ -35,6 +39,9 @@ class Database(Testable):
 		`password`: Password if not configured in ~/.pgppass or other standard place
 		"""
 		super().__init__(label=label)
+		if dialect == "postgresql":
+			dialect = "postgresql+psycopg"
+
 		self.dialect = dialect
 		self.host = host
 		self.database = database

@@ -8,6 +8,7 @@ from copy import copy
 import humanize
 
 from ..measurement import Measurement
+# from ..measurement import measurement_fn
 from ..measurement import MeasurementState
 from ..measurement import MessageDescription
 from .server import Server
@@ -30,6 +31,10 @@ message_description_mount = MessageDescription(
 	# importance=Important.DASHBOARD,
 	)
 
+# @measurement_fn(
+	# label="ping",
+	# description="Check we can ping the server",
+	# subject=Server)
 def measure_server_ping(target:Server, context:Context):
 	"""Check the server responds to ping.
 
@@ -61,6 +66,7 @@ def measure_server_ping(target:Server, context:Context):
 
 measure_server_ping.label = "ping"
 measure_server_ping.description = "Check we can ping the server"
+measure_server_ping.subject = Server
 
 def measure_server_ssh_aliveness(target:Server, context:Context):
 	try:
@@ -84,7 +90,7 @@ def measure_server_ssh_aliveness(target:Server, context:Context):
 measure_server_ssh_aliveness.label = "ssh aliveness"
 measure_server_ssh_aliveness.description = "Check we can ssh into the server"
 
-def measure_server_ssh_mountpoints(target:Server, context:Context):
+def measure_server_ssh_mountpoints(target:Server, context:Context) -> Measurement:
 	"""Check all configured mountpoints are mounted."""
 	if target.mounts is None:
 		return Measurement("NOT_APPLICABLE")
@@ -206,9 +212,15 @@ def measure_server_ssh_docker(target:Server, context:Context):
 		if len(line) == 0:
 			continue
 
-		print("LINE", line)
+		# print("LINE", line)
 		container_name, image_name, age = line.split(",")
-		result.add_message(container_name, "{image} running since {age}".format(
+		if image_name.startswith("harbor.opscloud.eumetsat.int/"):
+			image_name = image_name[len("harbor.opscloud.eumetsat.int/"):]
+
+		if age.endswith(" ago"):
+			age = age[:-len(" ago")]
+
+		result.add_message(container_name, "{image} running {age}".format(
 			image=image_name, age=age))
 
 	return result

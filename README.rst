@@ -4,34 +4,37 @@ CMON
 Introduction
 ------------
 
-This is a tool for testing and documenting a system of servers and services.
-The user describes a network of objects in a configuration file then uses the CMON tool to
-either run automated tests against them, or can create a system diagram.
+`cmon` is a tool for testing and documenting a system of servers and services.
+
+You edit a configuration file to describe the system, then run `cmon` to either run automated
+tests to report on how well the system is running, or output a system diagram.
 
 Quickstart
 ----------
 
-CMON needs a configuration file describing a network of servers and other objects
+`cmon` needs a configuration file describing a network of servers and other objects
 in order to work.
 Either write one based on a local system (see configuration file docs)
 or use the sample configuration file and start up a system of docker containers
 to create the system
 
+The local network requires ports 21000-21002 to be available. Edit `docker/Dockerfile`,
+`conf/sample_config.py` to change this.
+
 # Grab the source code
 https://github.com/mjem/cmon.git
 # Set up virtual environment
 python3 -m venv env
+# Activate virtual env and application
 . env/bin/activate
-# Install cmon and dependancies
-pip3 install .
 # Display sample configuration file
-cmon --config-py conf/wald_config.py --show-config
-# Set up sample network of postgres and web servers
-<<<write me with docker. needs docker daemon running>>>
+cmon --config-py sample/sample_config.py --show-config
+# Set up sample network of web server, postgres server and a dummy logging application
+docker-compose -f sample/docker-compose.yaml up -d
 # Display test results to console
-cmon --config-py conf/wald_config.py --output-console
+cmon --config-py conf/example_config.py --output-console
 # Make website of test results
-cmon --config-py conf/wald_config.py --output-web output
+cmon --config-py conf/example_config.py --output-web output
 # Open in a browser
 firefox output.index.html
 

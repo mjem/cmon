@@ -4,6 +4,7 @@
 
 import logging
 from datetime import datetime
+from datetime import timedelta
 
 import sqlalchemy
 
@@ -15,39 +16,45 @@ from ..context import Context
 
 logger = logging.getLogger("database")
 
-def measure_backend_jobs(target:Backend, context:Context) -> Measurement:
-	if len(target.jobs) == 0:
+def measure_backend_db_tests(target:Backend, context:Context) -> Measurement:
+	if len(target.db_tests) == 0:
 		return Measurement(MeasurementState.NOT_APPLICABLE)
 
 	database = target.database
 	conn = database.connect()
-	# cur = conn.cursor()
 	result = Measurement()
-	for job in target.jobs:
-		clauses = ["gen_time>:min_time"]
-		bindvars = {"min_time": datetime.utcnow() - job.period}
-		if job.activity is not None:
-			# clauses.append("activity in :activities")
-			clauses.append("activity = ANY(:activities)")
-			if isinstance(job.activity, tuple):
-				bindvars["activities"] = job.activity
+	for db_test in target.db_tests:
+		bindvars = {
+			"starttime": datetime.utcnow() - db_test.starttime_offset,
+			"stoptime": datetime.utcnow(),
+			"yesterday": datetime.utcnow().date() - timedelta(days=1),
+			"yesterday1": datetime.utcnow().date() - timedelta(days=2),
+		}
+		cursor = conn.execute(sqlalchemy.text(db_test.sql), bindvars)
+		row = cursor.fetchone()
+		# logger.debug("result count " + str(result))
+		if len(cursor.keys()) == 1:
+			result_count = result[0]
+			if row[0] >= db_test.min_count:
+				result.add_child(
+					Measurement(
+						MeasurementState.GOOD,
+						messages=[Message(db_test.name, row[0])]))
 
 			else:
-				bindvars["activities"] = job.activity
+				result.add_child(
+					Measurement(
+						MeasurementState.FAILED,
+						messages=[Message(db_test.name, "found {act} minimum {mn}".format(
+							act=row[0], mn=db_test.min_count))]))
 
-		sql = "SELECT count(*) FROM jobs WHERE {where}".format(
-			where=" AND ".join(clauses))
-		logger.debug(sql + " " + str(bindvars))
-		# cur.execute(sql, bindvars)
-		cursor = conn.execute(sqlalchemy.text(sql), bindvars).fetchone()
-		job_count = cursor[0]
-		logger.debug("job count " + str(job_count))
-		result.add_child(
-			Measurement(
-				MeasurementState.GOOD if job_count>=job.min_count else \
-				MeasurementState.FAILED,
-				messages=[Message(job.message(), job_count)]))
-		# print("jobs result", result)
+		else:
+			new_measurement = Measurement(MeasurementState.GOOD)
+			for cc, column_name in enumerate(cursor.keys()):
+				new_measurement.add_message(db_test.name + '.' + column_name,
+											row[cc])
+
+			result.add_child(new_measurement)
 
 	# Merge all the individual jobs query results into a single measurement
 	result.traffic_lights()
@@ -55,19 +62,6 @@ def measure_backend_jobs(target:Backend, context:Context) -> Measurement:
 		result.messages.extend(child.messages)
 
 	result.children = None
-	# result.add_message("one", 10)
 	return result
 
-measure_backend_jobs.label = "jobs"
-
-def measure_backend_ingestion():
-	raise NotImplementedError()
-
-def measure_backend_events():
-	raise NotImplementedError()
-
-def measure_backend_ts():
-	raise NotImplementedError()
-
-def measure_backend_reports():
-	raise NotImplementedError()
+measure_backend_db_tests.label = "db_tests"

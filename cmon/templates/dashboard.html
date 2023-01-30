@@ -3,7 +3,8 @@
   <head>
 	<meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-	<title>Dashboard {{dashboard_result.subject.label}}</title>
+	<link rel="icon" type="image/x-icon" href="cmon.ico">
+	<title>Dashboard {{dashboards_result.subject.nav_title}}</title>
 	<link href="bootstrap.min.css" rel="stylesheet">
 	<style>
 	 h2 {
@@ -21,31 +22,33 @@
 	<script src="bootstrap.bundle.min.js"></script>
 	<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
 	  <div class="container-fluid">
-		<a class="navbar-brand" href="{{dashboard_result.subject.nav_url}}" data-toggle="tooltip" data-placement="bottom" title="{{dashboard_result.subject.nav_tooltip}}">{{dashboard_result.subject.nav_title}}</a>
+		<a class="navbar-brand" href="{{dashboards_result.subject.nav_url}}" data-toggle="tooltip" data-placement="bottom" title="{{dashboards_result.subject.nav_tooltip}}">{{dashboards_result.subject.nav_title}}</a>
 		<button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
 		  <span class="navbar-toggler-icon"></span>
 		</button>
 		<div class="collapse navbar-collapse" id="navbarSupportedContent">
 		  <ul class="navbar-nav me-auto mb-2 mb-lg-0">
 			<li class="nav-item">
-			  <a class="nav-link active" href="#" data-toggle="tooltip" data-placement="bottom" title="Display results of test run">Results</a>
+			  <a class="nav-link active" href="index.html" data-toggle="tooltip" data-placement="bottom" title="Display results of test run">Dashboards</a>
 			</li>
 			<li class="nav-item">
-			  <a class="nav-link active" href="#" data-toggle="tooltip" data-placement="bottom" title="Generate a system design diagram">Design</a>
+			  <a class="nav-link" href="source.html" data-toggle="tooltip" data-placement="bottom" title="Show configuration file">Source</a>
 			</li>
 			<li class="nav-item">
-			  <a class="nav-link active" href="#" data-toggle="tooltip" data-placement="bottom" title="Show configuration file">Source</a>
+			  <a class="nav-link" href="sysdes.html" data-toggle="tooltip" data-placement="bottom" title="Generate a system design diagram">System design</a>
 			</li>
 			<li class="nav-item">
-			  <a class="nav-link active" href="#" data-toggle="tooltip" data-placement="bottom" title="Show configuration options">Options</a>
+			  <a class="nav-link" href="sysdessource.html" data-toggle="tooltip" data-placement="bottom" title="Show configuration file">System design source</a>
 			</li>
 		  </ul>
 		</div>
 	  </div>
 	</nav>
-	<h1>{{theme.icons["Dashboard"]}} Dashboard {{dashboard_result.subject.label}} <span class="{{theme.states[dashboard_result.state]}}">{{dashboard_result.state.value}}</span></h1>{%for test_suite_result in dashboard_result.children%}
-	  <br><h2 data-bs-toggle="collapse" data-bs-target="#collapseExample{{loop.index}}">{{theme.icons["TestSuite"]}} Test group {{test_suite_result.subject.label}} <span class="{{theme.states[test_suite_result.state]}}">{{test_suite_result.state.value}}</span></h2>
-	  <div class="container show" id="collapseExample{{loop.index}}">
+	{%for dashboard_result in dashboards_result.children%}
+<h1 data-bs-toggle="collapse" data-bs-target="#collapseDashboard">{{theme.icons["Dashboard"]}} Dashboard {{dashboard_result.subject.label}} <span class="{{theme.states[dashboard_result.state]}}">{{dashboard_result.state.value}}</span></h1>{%for test_suite_result in dashboard_result.children%}
+  <div class="collapse show" id="collapseDashboard">
+	  <br><h2 data-bs-toggle="collapse" data-bs-target="#collapseSuite{{loop.index}}">{{theme.icons["TestSuite"]}} Test group {{test_suite_result.subject.label}} <span class="{{theme.states[test_suite_result.state]}}">{{test_suite_result.state.value}}</span></h2>
+	  <div class="container collapse show" id="collapseSuite{{loop.index}}">
 		<div class="row">{%for target_result in test_suite_result.children%}
 		  <div class="col border rounded border-secondary m-1">
 			<p><!-- target -->{{theme.icons[target_result.subject.__class__.__name__]}} {{target_result.subject.__class__.__name__}} {{target_result.subject.label}} <span class="{{theme.states[target_result.state]}}">{{target_result.state.value}}</span></p>
@@ -72,10 +75,12 @@
 	  </ul>
 	  </p>
 	  {%endif%}
-	  <script>
-		$(function () {
-		  $('[data-toggle="tooltip"]').tooltip()
-		})
-	  </script>
+  </div><!-- container collapse -->
+  {%endfor%} <!-- dashboards -->
+<script>
+  $(function () {
+	$('[data-toggle="tooltip"]').tooltip()
+  })
+</script>
   </body>
 </html>

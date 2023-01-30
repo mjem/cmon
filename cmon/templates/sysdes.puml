@@ -1,0 +1,37 @@
+@startuml
+scale 1
+actor "EUM_user"
+actor "External_user"
+cloud Internet
+node "concorde" {
+	 [dispatcher]
+}
+node "cdat" {
+	 [CDAT]
+}
+node "fviprs20" {
+	 [CHART-JCS OPE IPR]
+}
+node "fvdbs10" {
+	 database "CHART-JCS OPE DBS"
+}
+node "epp-fvdbs10" {
+	 database "EPP CHART-JCS OPE DBS"
+}
+node "epp-fviprs20" {
+	 [EPP CHART-JCS OPE IPR]
+}
+node "nfs" {
+	 folder "/fbf/datalake/in"
+}
+EUM_user --> dispatcher : https://chart
+External_user --> Internet
+Internet --> [EPP CHART-JCS OPE IPR] : https://chartext.eumetsat.int
+[dispatcher] --> [CHART-JCS OPE IPR] : https://chart/jcs
+[dispatcher] --> CDAT : https://chart/cdat
+[CDAT] --> [CHART-JCS OPE IPR] : https://chart/jcs/rest
+[CHART-JCS OPE IPR] --> [CHART-JCS OPE DBS] : SQL
+[CHART-JCS OPE IPR] --> [/fbf/datalake/in] : File scan
+[CHART-JCS OPE DBS] --> [EPP CHART-JCS OPE DBS] : Sync
+[EPP CHART-JCS OPE IPR] --> [EPP CHART-JCS OPE DBS] : SQL
+@enduml

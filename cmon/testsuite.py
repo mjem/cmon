@@ -74,7 +74,7 @@ class TestSuite:
 				# check if the user has excluded any tests
 				if hasattr(test, "label") and\
 				   context.include_tests is not None and\
-				   test.label not in context.include_tests:
+				   context.include_tests not in test.label:
 					continue
 
 				test_result = test(target=target, context=context)

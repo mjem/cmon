@@ -6,8 +6,8 @@ from pathlib import Path
 
 from .log import init_log
 from .terminalprinter import TerminalPrinter
-from .terminaldashboard import terminal_dashboard
-from .htmldashboard import html_dashboard
+from .terminaldashboard import terminal_dashboards
+from .htmldashboard import html_dashboards
 from .context import Context
 
 def main():
@@ -53,14 +53,15 @@ def main():
 	dashboard = None
 	if args.config_py:
 		config = runpy.run_path(args.config_py)#, init_globals=globals()))
-		dashboard = config["dashboard"]
+		dashboards = config["dashboards"]
 
 	if config is None:
 		parser.error("No configuration file given")
 
 	if args.show_config:
-		dashboard.show(TerminalPrinter())
-		parser.exit()
+		for dashboard in dashboards.dashboards.values():
+			dashboard.show(TerminalPrinter())
+			parser.exit()
 
 	# if args.show_config_yaml:
 		# raise NotImplementedError()
@@ -72,18 +73,18 @@ def main():
 		# raise NotImplementedError()
 
 	if args.output_console or args.output_web:
-		result = dashboard.run(Context(simulate=args.simulate,
-									   verbose=args.verbose,
-									   include_tests=args.include_tests))
+		result = dashboards.run(Context(simulate=args.simulate,
+										verbose=args.verbose,
+										include_tests=args.include_tests))
 
 		if args.simulate:
 			parser.exit()
 
 		if args.output_console:
-			terminal_dashboard(TerminalPrinter(), result)
+			terminal_dashboards(TerminalPrinter(), result)
 
 		if args.output_web:
-			html_dashboard(result, Path(args.output_web))
+			html_dashboards(result, Path(args.output_web), Path(args.config_py))
 
 		parser.exit()
 

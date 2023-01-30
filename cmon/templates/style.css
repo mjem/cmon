@@ -1,0 +1,26 @@
+	<style>
+	 body {
+	   font-family: arial, sans;
+	   /*background-color: black;*/
+	 }
+	 h1, h2, h3, h4 {
+	   color: blue;
+	 }
+	 div.testsuite {
+	   /*background-color: cyan;*/
+	 }
+	 span.target {
+	 }
+	 td {
+	   vertical-align: top;
+	   border: 1px black solid;
+	   background-color: cyan;
+	 }
+	 span.state_GOOD {
+	   color: #00ff00;
+	   background-color: #008000;
+	 }
+	 span.state_FAILED {
+	   color: red;
+	 }
+	</style>
