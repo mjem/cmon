@@ -9,7 +9,8 @@ class Testable:
 	def __init__(self,
 				 label:str=None,
 				 description:str=None,
-				 important:bool=True):
+				 important:bool=True,
+				 tests:Iterable["Measurement"]=None):
 		"""Args:
 		- `label`: Short friendly label to display in dashboard
 		  (item names are internal and not shown in outputs)
@@ -22,6 +23,7 @@ class Testable:
 		self.label = label
 		self.description = description
 		self.important = important
+		self.tests = tests
 
 	def links(self) -> Iterable["Testable"]:
 		"""Return a list of objects that help provide the services of ourselves."""

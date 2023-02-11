@@ -19,6 +19,7 @@ from .dashboard import Dashboard
 from .measurement import Measurement
 from .measurement import MeasurementState
 from .terminalprinter import TerminalPrinter
+from .testable import Testable
 
 logger = logging.getLogger("output")
 
@@ -32,18 +33,21 @@ class Theme:
 				 pages:Iterable[tuple]=tuple(),
 				 statics:Iterable[Path]=[],
 				 states:Dict[MeasurementState,str]={},
-				 icons={}):
+				 icons:Dict[Testable, str]={},
+				 prefixes:Dict[Testable, str]={}):
 		"""Args:
 		- `pages`: List of tuples of (template, output file) which are expanded to
 			form output website.
 		- `statics`: List of input resoutces to be copied to output directory.
-		- `states`: CSS classes for each measurement status.
+		- `states`: CSS class for each measurement status.
 		- `icons`: Map of subject type against HTML for an icon.
+		- `prefixes`: Map of subject type against text prefix to each label
 		"""
 		self.pages = pages
 		self.statics = statics
 		self.states = states
 		self.icons = icons
+		self.prefixes = prefixes
 
 # HTML web output theme based around bootstrap
 bootstrap_theme = Theme(
@@ -52,6 +56,7 @@ bootstrap_theme = Theme(
 		(TEMPLATE_DIR.joinpath("sysdes.html"), Path("sysdes.html")),
 		(TEMPLATE_DIR.joinpath("source.html"), Path("source.html")),
 		(TEMPLATE_DIR.joinpath("sysdessource.html"), Path("sysdessource.html")),
+		(TEMPLATE_DIR.joinpath("result.html"), Path("result.html")),
 		),
 	statics=(
 		THIRDPARTY_DIR.joinpath("bootstrap-5.3.0-alpha1-dist/css/bootstrap.min.css"),
@@ -107,6 +112,24 @@ bootstrap_theme = Theme(
   <path d="M4 11H2v3h2v-3zm5-4H7v7h2V7zm5-5v12h-2V2h2zm-2-1a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1h-2zM6 7a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V7zm-5 4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1v-3z"/>
 </svg>""",
 		},
+	# prefixes={
+		# "Dashboard": " Dashboard ",
+		# "TestSuite": " Test group ",
+		# "Server": " Server ",
+		# "Database": " Database ",
+		# "Dataflow": " Data flow ",
+		# "Backend": " Backend ",
+		# "Website": " Website ",
+	# },
+	prefixes={
+		"Dashboard": " ",
+		"TestSuite": " ",
+		"Server": " ",
+		"Database": " ",
+		"Dataflow": " ",
+		"Backend": " ",
+		"Website": " ",
+	},
 )
 
 def html_dashboards(dashboards_result:Measurement,
@@ -130,6 +153,12 @@ def html_dashboards(dashboards_result:Measurement,
 
 	context = {"dashboards_result": dashboards_result,
 			   "theme": theme,
+			   "bigright": """<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="currentColor" class="bi bi-caret-right" viewBox="0 0 16 16">
+  <path d="M6 12.796V3.204L11.481 8 6 12.796zm.659.753 5.48-4.796a1 1 0 0 0 0-1.506L6.66 2.451C6.011 1.885 5 2.345 5 3.204v9.592a1 1 0 0 0 1.659.753z"/>
+</svg>""",
+			   "bigdown": """<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-caret-down" viewBox="0 0 16 16">
+  <path d="M3.204 5h9.592L8 10.481 3.204 5zm-.753.659 4.796 5.48a1 1 0 0 0 1.506 0l4.796-5.48c.566-.647.106-1.659-.753-1.659H3.204a1 1 0 0 0-.753 1.659z"/>
+</svg>""",
 			   "source": config_html}
 	page_count = 0
 	for p in theme.pages:

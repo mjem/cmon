@@ -63,7 +63,7 @@ score = false
 [tool.pylint.messages]
 # disable pylint messages to avoid clashes with other tools
 
-[tool.pycodestyle]
+# [tool.pycodestyle]
 # bad-indentation, bare-except, line-too-long, missing-final-newline, multiple-statements
 # singleton-comparison, trailing-whitespace, unnecessary-semicolon, unneeded-not
 # wrong-import-position
@@ -80,7 +80,7 @@ no_implicit_optional=false
 
 # May not work, if not pass isort "--sl" command line argument instead
 [tool.isort]
-force_single_line_imports = true
+# force_single_line_imports = true
 # wrong-import-order
 
 # Attempt to configure mccabe

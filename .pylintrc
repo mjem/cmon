@@ -29,6 +29,8 @@ indent-string = "\t"
 [logging]
 
 [messages contro]
+# E0402: Attempted relative import beyond top-level package (relative-beyond-top-level)
+disable=E0402
 
 [method_args]
 

@@ -16,52 +16,45 @@ from ..context import Context
 
 logger = logging.getLogger("database")
 
-def measure_backend_db_tests(target:Backend, context:Context) -> Measurement:
-	if len(target.db_tests) == 0:
-		return Measurement(MeasurementState.NOT_APPLICABLE)
+def measure_backend_sql(
+		name,
+		sql:str,
+		label:str=None,
+		starttime_offset:timedelta=timedelta(),
+		min_count:int=1,
+		description:str=None):
+	"""Make a configurable generic SQL query measurement.
 
-	database = target.database
-	conn = database.connect()
-	result = Measurement()
-	for db_test in target.db_tests:
+	Args:
+	- `name`: Internal function name for storage
+	- `sql`: SQL statement to run
+	- `label`: Display label for UI
+	- `description`: Long description if the user requests
+
+	If a single value is returned, that is xxx.
+	If multiple values are returned, they should be aliased, and will become measurement
+	messages.
+
+	Hide messages (not important) by prefixing the alias with '_'.
+	"""
+	def imp(target:Backend, context:Context) -> Measurement:
+		conn = target.database.connect()
+		result = Measurement()
 		bindvars = {
-			"starttime": datetime.utcnow() - db_test.starttime_offset,
+			"starttime": datetime.utcnow() - starttime_offset,
 			"stoptime": datetime.utcnow(),
 			"yesterday": datetime.utcnow().date() - timedelta(days=1),
 			"yesterday1": datetime.utcnow().date() - timedelta(days=2),
 		}
-		cursor = conn.execute(sqlalchemy.text(db_test.sql), bindvars)
+		cursor = conn.execute(sqlalchemy.text(sql), bindvars)
 		row = cursor.fetchone()
-		# logger.debug("result count " + str(result))
-		if len(cursor.keys()) == 1:
-			result_count = result[0]
-			if row[0] >= db_test.min_count:
-				result.add_child(
-					Measurement(
-						MeasurementState.GOOD,
-						messages=[Message(db_test.name, row[0])]))
+		result = Measurement(MeasurementState.GOOD)
+		for cc, column_name in enumerate(cursor.keys()):
+			result.add_message(name + '.' + column_name, row[cc])
+			if row[cc] and row[cc] < min_count:
+				result.state = MeasurementState.BAD
 
-			else:
-				result.add_child(
-					Measurement(
-						MeasurementState.FAILED,
-						messages=[Message(db_test.name, "found {act} minimum {mn}".format(
-							act=row[0], mn=db_test.min_count))]))
+		return result
 
-		else:
-			new_measurement = Measurement(MeasurementState.GOOD)
-			for cc, column_name in enumerate(cursor.keys()):
-				new_measurement.add_message(db_test.name + '.' + column_name,
-											row[cc])
-
-			result.add_child(new_measurement)
-
-	# Merge all the individual jobs query results into a single measurement
-	result.traffic_lights()
-	for child in result.children:
-		result.messages.extend(child.messages)
-
-	result.children = None
-	return result
-
-measure_backend_db_tests.label = "db_tests"
+	imp.label = label
+	return imp

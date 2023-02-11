@@ -7,6 +7,8 @@ from enum import Enum
 from typing import Iterable
 from typing import Union
 from typing import Callable
+from datetime import datetime
+from datetime import timedelta
 
 from .testable import Testable
 
@@ -123,7 +125,7 @@ class Measurement:
 
 	def add_message(self,
 					name:str,
-					value:Union[str, int, float, bool],
+					value:Union[str, int, float, bool, datetime, timedelta],
 					description:MessageDescription=None):
 		self.messages.append(Message(name=name, value=value, description=description))
 

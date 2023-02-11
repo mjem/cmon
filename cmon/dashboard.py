@@ -4,12 +4,14 @@
 
 import logging
 from typing import Dict
+from typing import Iterable
 from datetime import datetime
 
 from .testsuite import TestSuite
 from .context import Context
 from .measurement import Measurement
 from .measurement import MeasurementState
+from .testable import Testable
 
 logger = logging.getLogger()
 
@@ -17,15 +19,19 @@ class Dashboard:
 	"""A group of related test suites."""
 	def __init__(self,
 				 test_suites:Dict[str, TestSuite],
-				 label:str=None):
+				 label:str=None,
+				 description:str=None):
 		"""Args:
 		- `test_suites`: List of test suites included in this dashboard
 		- `label`: Title for this dashboard
 		"""
 		self.test_suites = test_suites
 		self.label = label
+		self.description = description
 
-	def run(self, context:Context) -> Measurement:
+	def run(self,
+			standard_tests:dict[Testable,Iterable[Measurement]],
+			context:Context) -> Measurement:
 		"""Run all tests to produce the dashboard result.
 
 		Return heirarchy of Measurement objects, each containing
@@ -37,7 +43,7 @@ class Dashboard:
 		logger.info("Dashboard run")
 		result = Measurement(subject=self)
 		for suite in self.test_suites.values():
-			suite_result = suite.run(context=context)
+			suite_result = suite.run(standard_tests=standard_tests, context=context)
 			if suite_result.state is MeasurementState.NOT_APPLICABLE:
 				continue
 

@@ -40,18 +40,21 @@
 			<li class="nav-item">
 			  <a class="nav-link" href="sysdessource.html" data-toggle="tooltip" data-placement="bottom" title="Show configuration file">System design source</a>
 			</li>
+			<li class="nav-item">
+			  <a class="nav-link" href="result.html" data-toggle="tooltip" data-placement="bottom" title="Show result values">Result</a>
+			</li>
 		  </ul>
 		</div>
 	  </div>
 	</nav>
 	{%for dashboard_result in dashboards_result.children%}
-<h1 data-bs-toggle="collapse" data-bs-target="#collapseDashboard">{{theme.icons["Dashboard"]}} Dashboard {{dashboard_result.subject.label}} <span class="{{theme.states[dashboard_result.state]}}">{{dashboard_result.state.value}}</span></h1>{%for test_suite_result in dashboard_result.children%}
-  <div class="collapse show" id="collapseDashboard">
-	  <br><h2 data-bs-toggle="collapse" data-bs-target="#collapseSuite{{loop.index}}">{{theme.icons["TestSuite"]}} Test group {{test_suite_result.subject.label}} <span class="{{theme.states[test_suite_result.state]}}">{{test_suite_result.state.value}}</span></h2>
+	  <h1 data-bs-toggle="collapse" data-bs-target="#collapseDashboard" data-toggle="tooltip" data-placement="bottom" title="{{dashboard_result.subject.description}}">{{bigright}} {{theme.icons["Dashboard"]}}{{theme.prefixes["Dashboard"]}}{{dashboard_result.subject.label}} <span class="{{theme.states[dashboard_result.state]}}">{{dashboard_result.state.value}}</span></h1>{%for test_suite_result in dashboard_result.children%}
+		<div class="collapse show" id="collapseDashboard" data-toggle="tooltip" data-placement="bottom" title="{{test_suite_result.subject.description}}">>
+		  <br><h2 data-bs-toggle="collapse" data-bs-target="#collapseSuite{{loop.index}}">{{bigright}} {{theme.icons["TestSuite"]}}{{theme.prefixes["TestSuite"]}}{{test_suite_result.subject.label}} <span class="{{theme.states[test_suite_result.state]}}">{{test_suite_result.state.value}}</span></h2>
 	  <div class="container collapse show" id="collapseSuite{{loop.index}}">
 		<div class="row">{%for target_result in test_suite_result.children%}
 		  <div class="col border rounded border-secondary m-1">
-			<p><!-- target -->{{theme.icons[target_result.subject.__class__.__name__]}} {{target_result.subject.__class__.__name__}} {{target_result.subject.label}} <span class="{{theme.states[target_result.state]}}">{{target_result.state.value}}</span></p>
+			<p><!-- target --><span data-toggle="tooltip" data-placement="bottom" title="{{target_result.subject.description}}">{{theme.icons[target_result.subject.__class__.__name__]}}{{theme.prefixes[target_result.subject.__class__.__name__]}}{{target_result.subject.label}}</span> <span class="{{theme.states[target_result.state]}}">{{target_result.state.value}}</span></p>
 			<p>Tests:
 			<ul>{%for test_result in target_result.children%}
 			  <li><!-- test --><span role="button" data-toggle="tooltip" data-placement="right" title="{{test_result.subject.description}}">{{test_result.subject.label or test_result.subject.__name__}} <span class="{{theme.states[test_result.state]}}">{{test_result.state.value}}</span></span>

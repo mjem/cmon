@@ -34,4 +34,7 @@ def measure_web_urls(target:Website, context:Context):
 
 	return result
 
-measure_web_urls.label = "URLs"
+measure_web_urls.name = "urls"
+measure_web_urls.label = "URL timings"
+measure_web_urls.description = "Measure the response, server code and response time for each URL"
+

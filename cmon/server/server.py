@@ -29,6 +29,7 @@ class Server(Testable):
 				 label:str=None,
 				 description:str=None,
 				 ssh_user:Union[str,Iterable[str]]=None,
+				 ssh_password:str=None,
 				 ssh_config:Union[str, Iterable[str]]=None,
 				 mounts:Iterable[Mount]=None,
 				 important:bool=True,
@@ -67,6 +68,7 @@ class Server(Testable):
 		self.ssh_user_clients = {}
 		self.ssh_config_clients = {}
 		self.docker_containers = docker_containers
+		self.ssh_password = ssh_password
 
 	def __str__(self):
 		if self.label:

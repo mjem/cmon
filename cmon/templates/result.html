@@ -16,6 +16,9 @@
 	 p {
 	   margin-bottom: 0px;
 	 }
+	 iframe {
+	   height: 100vh
+	 }
 	</style>
   </head>
   <body>
@@ -35,19 +38,24 @@
 			  <a class="nav-link" href="source.html" data-toggle="tooltip" data-placement="bottom" title="Show configuration file">Source</a>
 			</li>
 			<li class="nav-item">
-			  <a class="nav-link active" href="sysdes.html" data-toggle="tooltip" data-placement="bottom" title="Generate a system design diagram">System design</a>
+			  <a class="nav-link" href="sysdes.html" data-toggle="tooltip" data-placement="bottom" title="Generate a system design diagram">System design</a>
 			</li>
 			<li class="nav-item">
 			  <a class="nav-link" href="sysdessource.html" data-toggle="tooltip" data-placement="bottom" title="Show configuration file">System design source</a>
 			</li>
 			<li class="nav-item">
-			  <a class="nav-link" href="result.html" data-toggle="tooltip" data-placement="bottom" title="Show result values">Result</a>
+			  <a class="nav-link active" href="result.html" data-toggle="tooltip" data-placement="bottom" title="Show result values">Result</a>
 			</li>
 		  </ul>
 		</div>
 	  </div>
 	</nav>
-	<img src="sysdes.png">
+	<pre>
+Class.name.measurement.message.state=value
+Server.webhost.ping=good
+Website.website.url."http://192.168.4.10"=0
+Website.website.url."http://192.168.4.11".error=Zero length response
+	</pre>
 <script>
   $(function () {
 	$('[data-toggle="tooltip"]').tooltip()

@@ -14,11 +14,13 @@ logger = logging.getLogger("testsuite")
 class TestSuite:
 	def __init__(self,
 				 targets:Iterable[Testable],
-				 tests:Iterable[callable],
-				 label:str=None):
+				 # tests:Iterable[callable],
+				 label:str=None,
+				 description:str=None):
 		self.targets = targets
-		self.tests = tests
+		# self.tests = tests
 		self.label = label
+		self.description = description
 
 	def show(self, printer:object) -> None:
 		"""Hierarchical tree view of our configuration."""
@@ -42,27 +44,18 @@ class TestSuite:
 				printer.end_section()
 
 		printer.end_section()
-		printer.begin_section("Tests")
-		for t in self.tests:
-			if hasattr(t, "label"):
-				printer.write_line(t.label)
-
-			else:
-				printer.write_line(printer.docstring_single(t))
-
 		printer.end_section()
 
-	def run(self, context:Context) -> Measurement:
+	def run(self,
+			standard_tests:dict[Testable,Iterable[Measurement]],
+			context:Context) -> Measurement:
 		"""
 		"""
-		skip = len(self.targets) == 0 or len(self.tests) == 0
-		logger.info("Testsuite {label} with {cctargets} targets {cctests} tests {action}".format(
+		logger.info("Testsuite {label} with {cctargets} targets".format(
 			label="anon" if self.label is None else self.label,
-			cctargets=len(self.targets),
-			cctests=len(self.tests),
-			action="skip" if skip else "run"))
+			cctargets=len(self.targets)))
 
-		if skip:
+		if len(self.targets) == 0:
 			# if we have no tests configred or no targets then we cannot run
 			return Measurement(MeasurementState.NOT_APPLICABLE)
 
@@ -70,7 +63,17 @@ class TestSuite:
 		for target_name, target in self.targets.items():
 			logger.info("Target {target}".format(target=target_name))
 			target_result = Measurement(subject=target)
-			for test in self.tests:
+			if target.tests is not None:
+				tests = target.tests
+
+			else:
+				tests = standard_tests.get(type(target))
+
+			if tests is None or len(tests) == 0:
+				logger.info("Skipping subject with no tests")
+				return Measurement(MeasurementState.NOT_APPLICABLE)
+
+			for test in tests:
 				# check if the user has excluded any tests
 				if hasattr(test, "label") and\
 				   context.include_tests is not None and\

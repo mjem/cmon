@@ -1,0 +1,45 @@
+
+# Possible better way to handle networking: just start containers normally then
+# query for their IP address:
+# docker inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' sample_website_1
+
+
+
+version: '2'
+
+services:
+  website:
+    image: nginx:1
+    container_name: cmon_website
+    volumes:
+      - ./website:/usr/share/nginx/html
+    networks:
+      dock_net2:
+        ipv4_address: 192.168.4.10
+  database:
+    image: postgres
+    container_name: cmon_database
+    networks:
+      dock_net2:
+        ipv4_address: 192.168.4.11
+    environment:
+      - POSTGRES_USER=pg
+      - POSTGRES_PASSWORD=pg
+      - POSTGRES_DB=cmon
+    volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+  sshserver:
+    image: cmon/sshserver:latest
+    build: sshserver
+    container_name: cmon_sshserver
+    networks:
+      dock_net2:
+        ipv4_address: 192.168.4.12
+
+networks:
+  dock_net2:
+    driver: bridge
+    ipam:
+     config:
+       - subnet: 192.168.4.0/24
+         gateway: 192.168.4.1
