@@ -7,6 +7,7 @@ from enum import Enum
 from typing import Iterable
 from typing import Union
 from typing import Callable
+from typing import Dict
 from datetime import datetime
 from datetime import timedelta
 
@@ -15,12 +16,14 @@ from .testable import Testable
 logger = logging.getLogger()
 
 class MeasurementState(Enum):
+	"""Overall result of a test."""
 	GOOD = "good"
 	NOT_APPLICABLE = "n/a"
 	FAILED = "failed"
 	ERROR = "error"
 	MIXED = "mixed"
 	IN_PROGRESS = "in progress"
+	EMPTY = "empty"
 
 MeasurementState.GOOD.description = "Measurement was made and was successful"
 MeasurementState.NOT_APPLICABLE.description = "Measurement was skipped as not relevant"
@@ -30,35 +33,81 @@ MeasurementState.MIXED.description = "A mixure of good and bad results"
 MeasurementState.IN_PROGRESS.description = "The result is being processed"
 
 class MessageDescription:
-	"""Metadata about a measurement message."""
+	"""Additional information that forms part of a measurement result."""
 	def __init__(self,
-				 label:str=None,
+				 label:str,
+				 name:str=None,
 				 description:str=None,
 				 # quantisation,  # choose between required, optional or multiple
 				 # importance,  # choose between messages shown on the main dashboard
 				 # and messages shown only on the tooltip
 				 datatype:object=str,
-				 unit:str=None):
+				 unit:str=None,
+				 display:str=None,
+				 hidden:bool=False,
+				 multiple:object=None):
 		"""Args:
-		- `label`: Quick label for this measurement messaage
-		- `description`: Long label for this message
-		- `datatype`: Datatype (str, bool, int or float) for the message
+		- `label`: Visible brief label for this measurement messaage
+		- `name`: An optional internal name used for database and file storage and to refer to the message
+			in code
+		- `description`: Long label for this message, used for example in mouse popups
+		- `datatype`: Datatype (str, bool, int, float, datetime, timedelta, url) for the message
 		- `unit`: Allow numerical types to specify a unit
+		- `multiple`: Message is singular (None), optional (bool), a list (list) or named (dict)
 		"""
 		self.label = label
+		self.name = name
 		self.description = description
 		self.datatype = datatype
 		self.unit = unit
+		self.display = display
+		self.multiple = multiple
+
+def measure(
+		label:str,
+		subject_type:type,
+		name:str=None,
+		description:str=None,
+		messages:Iterable[MessageDescription]=[]):
+	"""Decorator to declare a measurement used to test a subject."""
+	def decorator_imp(func):
+		def func_imp(*args, **kwargs):
+			result = func(*args, **kwargs)
+			return result
+
+		func_imp.label = label
+		func_imp.name = name
+		func_imp.subject_type = subject_type
+		func_imp.description = description
+		func_imp.messages = messages
+		func_imp.decorator = measure
+		return func_imp
+
+	return decorator_imp
 
 class Message:
 	"""Give additional context to a test result."""
 	def __init__(self,
 				 name:str,
-				 value:Union[str, int, float, bool],
-				 description:MessageDescription=None):
+				 value:Union[str, int, float, bool]=None,
+				 parameter:str=None,
+				 description:MessageDescription=None,
+				 error:str=None):
+		"""Args:
+		- `name`: Message description name.
+		- `value`: Contents of the message. Type must match the message description datatype.
+		- `parameter`: Blank for a singlular message, ints for an array message, string key for a
+			dict message
+		- `description`: Link to the description object. The link is usually bound after the message
+			has been created
+		- `error`: There was a problem workng out this message. The error is always a string regardless
+		lf the message datatype. The normal value is ignored
+		"""
 		self.name = name
 		self.value = value
+		self.parameter = parameter
 		self.description = description
+		self.error = error
 
 	def __str__(self):
 		if self.value is None:
@@ -82,7 +131,8 @@ class Measurement:
 				 state:Union[MeasurementState,str]=MeasurementState.IN_PROGRESS,
 				 subject:Union[Testable,Callable]=None,
 				 messages:Iterable[Message]=None,
-				 children:Iterable["Measurement"]=None):
+				 test_fn:callable=None,
+				 ):
 		"""Args:
 		- `subject`: The thing we tested
 		- `state`: Overall status of the subject of this measurement
@@ -91,17 +141,12 @@ class Measurement:
 		"""
 		self.subject = subject
 		self.state = state
+		self.test_fn = test_fn
 		if messages is None:
 			self.messages = []
 
 		else:
 			self.messages = messages
-
-		if children is None:
-			self.children = []
-
-		else:
-			self.children = children
 
 	def get_state(self):
 		return self._state
@@ -124,10 +169,12 @@ class Measurement:
 			return "nok: {message}".format(message=". ".join(str(s) for s in self.messages))
 
 	def add_message(self,
-					name:str,
-					value:Union[str, int, float, bool, datetime, timedelta],
-					description:MessageDescription=None):
-		self.messages.append(Message(name=name, value=value, description=description))
+					message:Message):
+					# name:str,
+					# value:Union[str, int, float, bool, datetime, timedelta],
+					# description:MessageDescription=None):
+		self.messages.append(message)
+		# self.messages.append(Message(name=name, value=value, description=description))
 
 	def add_child(self, child:"Measurement"):
 		if self.children is None:
@@ -179,3 +226,25 @@ class Measurement:
 
 # 	def __setitem(self, key, value):
 # 		self.measurements[key] = value
+
+def traffic_light(results:Dict[Testable, MeasurementState],
+				  subject:Testable,
+				  new_state:MeasurementState) -> None:
+	"""Set state of parent objects to reflect child results."""
+	if new_state is MeasurementState.ERROR:
+		results[subject] = MeasurementState.ERROR
+
+	elif new_state is MeasurementState.GOOD:
+		if results[subject] is MeasurementState.EMPTY:
+			results[subject] = MeasurementState.GOOD
+
+		elif results[subject] is MeasurementState.ERROR:
+			results[subject] = MeasurementState.MIXED
+
+	elif new_state is MeasurementState.FAILED:
+		if results[subject] is MeasurementState.EMPTY:
+			results[subject] = MeasurementState.FAILED
+
+		elif results[subject] is MeasurementState.GOOD:
+			results[subject] = MeasurementState.MIXED
+

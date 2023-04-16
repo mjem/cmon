@@ -24,9 +24,14 @@ class ConnectionException(Exception):
 
 class Server(Testable):
 	"""Representation of a server which can be tested."""
+	name = "server"
+	label = "Server"
+	description = "Representation of a single server which can host services"
+
 	def __init__(self,
 				 hostname:str,
-				 label:str=None,
+				 label:str,
+				 name:str=None,
 				 description:str=None,
 				 ssh_user:Union[str,Iterable[str]]=None,
 				 ssh_password:str=None,
@@ -41,10 +46,13 @@ class Server(Testable):
 		- `ssh_user`: Username to attempt for ssh connection(s)
 		- `ssh_config`: Entry in ssh config file to read connection information(s) from
 		- `mounts`: Mounted directories for testing
-		- `important`: If the server is not important then a failure to ping does not
-			result in failing the server tests, although it is recorded in the messages
+		- `important`: If the server is not `important` then a test failure in this server does not
+			result in the whoel test suite failing
 		"""
-		super().__init__(label=label, description=description, important=important)
+		super().__init__(label=label,
+						 name=name,
+						 description=description,
+						 important=important)
 		self.hostname = hostname
 		if ssh_user is None:
 			self.ssh_user = []
@@ -136,3 +144,9 @@ class Server(Testable):
 			return self.ssh_connect_user(self.ssh_user[0])
 
 		return None
+
+	def get_id(self) -> str:
+		if self.name:
+			return self.name
+
+		return self.hostname

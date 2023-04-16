@@ -3,6 +3,7 @@
 import logging
 from typing import Iterable
 from typing import Callable
+from typing import Dict
 
 from .testable import Testable
 from .measurement import MeasurementState
@@ -13,19 +14,22 @@ logger = logging.getLogger("testsuite")
 
 class TestSuite:
 	def __init__(self,
-				 targets:Iterable[Testable],
-				 # tests:Iterable[callable],
-				 label:str=None,
+				 subjects:Dict[str, Testable],
+				 label:str,
 				 description:str=None):
-		self.targets = targets
-		# self.tests = tests
+		self.subjects = subjects
 		self.label = label
 		self.description = description
 
+		# set name attribute of each subject to the key
+		for k, v in subjects.items():
+			if v.name is None:
+				v.name = k
+
 	def show(self, printer:object) -> None:
 		"""Hierarchical tree view of our configuration."""
-		printer.begin_section("Targets")
-		for k, v in self.targets.items():
+		printer.begin_section("Subjects")
+		for k, v in self.subjects.items():
 			if v.label is not None:
 				title = "{name} ({label})".format(
 					name=k, label=v.label)
@@ -44,13 +48,11 @@ class TestSuite:
 				printer.end_section()
 
 		printer.end_section()
-		printer.end_section()
 
 	def run(self,
 			standard_tests:dict[Testable,Iterable[Measurement]],
 			context:Context) -> Measurement:
-		"""
-		"""
+		"""Run all tests in the suite."""
 		logger.info("Testsuite {label} with {cctargets} targets".format(
 			label="anon" if self.label is None else self.label,
 			cctargets=len(self.targets)))

@@ -16,8 +16,10 @@ from pygments.lexers import PythonLexer
 from pygments.formatters import HtmlFormatter
 
 from .dashboard import Dashboard
+from .system import System
 from .measurement import Measurement
 from .measurement import MeasurementState
+from .measurement import traffic_light
 from .terminalprinter import TerminalPrinter
 from .testable import Testable
 
@@ -67,6 +69,7 @@ bootstrap_theme = Theme(
 		# THIRDPARTY_DIR.joinpath("bootstrap-icons-1.10.3/server.svg"),
 	),
 	states={
+		"teststate": "badge rounded-pill text-bg-success",
 		MeasurementState.GOOD: "badge rounded-pill text-bg-success",
 		MeasurementState.FAILED: "badge rounded-pill text-bg-danger",
 		MeasurementState.ERROR: "badge rounded-pill text-bg-danger",
@@ -132,8 +135,9 @@ bootstrap_theme = Theme(
 	},
 )
 
-def html_dashboards(dashboards_result:Measurement,
-					output_dir:Path,
+def html_dashboards(output_dir:Path,
+					system:System,
+					results:Dict[Testable, Iterable[Measurement]],
 					config_file:Path,
 					theme:Theme=bootstrap_theme):
 	output_dir.mkdir(exist_ok=True)
@@ -151,15 +155,43 @@ def html_dashboards(dashboards_result:Measurement,
 							PythonLexer(),
 							HtmlFormatter(noclasses=True))
 
-	context = {"dashboards_result": dashboards_result,
-			   "theme": theme,
-			   "bigright": """<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="currentColor" class="bi bi-caret-right" viewBox="0 0 16 16">
-  <path d="M6 12.796V3.204L11.481 8 6 12.796zm.659.753 5.48-4.796a1 1 0 0 0 0-1.506L6.66 2.451C6.011 1.885 5 2.345 5 3.204v9.592a1 1 0 0 0 1.659.753z"/>
-</svg>""",
-			   "bigdown": """<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-caret-down" viewBox="0 0 16 16">
-  <path d="M3.204 5h9.592L8 10.481 3.204 5zm-.753.659 4.796 5.48a1 1 0 0 0 1.506 0l4.796-5.48c.566-.647.106-1.659-.753-1.659H3.204a1 1 0 0 0-.753 1.659z"/>
-</svg>""",
-			   "source": config_html}
+	# Count how many child nodes each object has with test results,
+	# so we can easily prune empty nodes below
+	children = {}
+	trafficlight = {}
+	for dashboard in system.dashboards.values():
+		trafficlight[dashboard] = MeasurementState.EMPTY
+		children[dashboard] = 0
+		for test_suite in dashboard.test_suites.values():
+			trafficlight[test_suite] = MeasurementState.EMPTY
+			children[test_suite] = 0
+			for subject in test_suite.subjects.values():
+				trafficlight[subject] = MeasurementState.EMPTY
+				children[dashboard] += len(results[subject])
+				children[test_suite] += len(results[subject])
+				children[subject] = len(results[subject])
+				for measurement in results[subject]:
+					traffic_light(trafficlight, dashboard, measurement.state)
+					traffic_light(trafficlight, test_suite, measurement.state)
+					traffic_light(trafficlight, subject, measurement.state)
+
+	context = {
+		"system": system,
+		"results": results,
+		"theme": theme,
+		# large arrow facing right to indicate a section which can be expanded
+		"bigright": """<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="currentColor" class="bi bi-caret-right" viewBox="0 0 16 16">
+		<path d="M6 12.796V3.204L11.481 8 6 12.796zm.659.753 5.48-4.796a1 1 0 0 0 0-1.506L6.66 2.451C6.011 1.885 5 2.345 5 3.204v9.592a1 1 0 0 0 1.659.753z"/>
+		</svg>""",
+		# large arrow facing down to indicate a section which has been expanded
+		"bigdown": """<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-caret-down" viewBox="0 0 16 16">
+		<path d="M3.204 5h9.592L8 10.481 3.204 5zm-.753.659 4.796 5.48a1 1 0 0 0 1.506 0l4.796-5.48c.566-.647.106-1.659-.753-1.659H3.204a1 1 0 0 0-.753 1.659z"/>
+		</svg>""",
+		"source": config_html,
+		"children": children,
+		"trafficlight": trafficlight,
+	}
+
 	page_count = 0
 	for p in theme.pages:
 		page_template, page_output = p

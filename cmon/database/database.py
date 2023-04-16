@@ -17,15 +17,22 @@ DIALECTS = (
 	'postgresql',
 )
 
+class CannotConnect(Exception):
+	pass
+
 class DatabaseNoAuth(Exception):
 	pass
 
 class Database(Testable):
 	"""Representation of a database to be tested."""
+	name = "database"
+	label = "Database"
+	description = "Representation of a database server"
+
 	def __init__(self,
 				 dialect:str,
 				 host:Server,
-				 label:str=None,
+				 label:str,
 				 database:str=None,
 				 port:int=None,
 				 user:str=None,
@@ -51,6 +58,16 @@ class Database(Testable):
 		self.engine = None
 		self.connection = None
 
+	def dsn(self):
+		return "{dialect}://{user}{password}@{host}{port}/{name}".format(
+			dialect=self.dialect,
+			user=self.user,
+			password="" if self.password is None else ":{password}".format(
+				password=self.password),
+			host=self.host.hostname,
+			port="" if self.port is None else ":{port}".format(port=self.port),
+			name=self.database)
+
 	def connect(self) -> object:
 		"""Log into database.
 
@@ -66,17 +83,13 @@ class Database(Testable):
 		# tm = sqlalchemy.Table("tm", metadat_obj, autoload_with=engine)
 		# conn.execute(sqlalchemy.text("select 140")).fetchall()[0][0]
 		if self.connection is None:
-			dsn = "{dialect}://{user}{password}@{host}{port}/{name}".format(
-				dialect=self.dialect,
-				user=self.user,
-				password="" if self.password is None else ":{password}".format(
-					password=self.password),
-				host=self.host.hostname,
-				port="" if self.port is None else ":{port}".format(port=self.port),
-				name=self.database)
+			dsn = self.dsn()
 			logger.info("Database string {dsn}".format(dsn=dsn))
 			self.engine = sqlalchemy.create_engine(dsn, echo=True)
-			self.connection = self.engine.connect()
+			try:
+				self.connection = self.engine.connect()
+			except sqlalchemy.exc.OperationalError:
+				raise CannotConnect("Connection to {db} failed".format(db=self.dsn()))
 
 		return self.connection
 

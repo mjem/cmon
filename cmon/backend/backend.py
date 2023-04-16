@@ -38,6 +38,10 @@ from ..utils import is_listlike
 
 class Backend(Testable):
 	"""Representation of a CHART environment processing backend."""
+	name = "backend"
+	label = "Backend"
+	description = ("Representation of backend processing software optionally using a databasse and "
+				   "providing a website")
 
 	def __init__(self,
 				 database: Database = None,

@@ -10,12 +10,16 @@ from ..testable import Testable
 from ..server.server import Server
 
 class Dataflow(Testable):
+	name = "dataflow"
+	label = "Dataflow"
+	description = "Representation of a flow of data into a directory tree"
+
 	def __init__(self,
+				 label:str,
 				 directory: Path,
 				 server:Server=None,
 				 pattern:str=None,
 				 max_outage: timedelta=None,
-				 label:str=None,
 				 important:bool=True):
 		"""
 		Args:

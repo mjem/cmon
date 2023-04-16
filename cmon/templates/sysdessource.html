@@ -25,14 +25,14 @@
 	<script src="bootstrap.bundle.min.js"></script>
 	<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
 	  <div class="container-fluid">
-		<a class="navbar-brand" href="{{dashboards_result.subject.nav_url}}" data-toggle="tooltip" data-placement="bottom" title="{{dashboards_result.subject.nav_tooltip}}">{{dashboards_result.subject.nav_title}}</a>
+		<a class="navbar-brand" href="{{system.navigation.url}}" data-toggle="tooltip" data-placement="bottom" title="{{system.navigation.tooltip}}">{{system.navigation.title}}</a>
 		<button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
 		  <span class="navbar-toggler-icon"></span>
 		</button>
 		<div class="collapse navbar-collapse" id="navbarSupportedContent">
 		  <ul class="navbar-nav me-auto mb-2 mb-lg-0">
 			<li class="nav-item">
-			  <a class="nav-link" href="index.html" data-toggle="tooltip" data-placement="bottom" title="Display results of test run">Dashboards</a>
+			  <a class="nav-link active" href="index.html" data-toggle="tooltip" data-placement="bottom" title="Display results of test run">Dashboards</a>
 			</li>
 			<li class="nav-item">
 			  <a class="nav-link" href="source.html" data-toggle="tooltip" data-placement="bottom" title="Show configuration file">Source</a>
@@ -41,7 +41,7 @@
 			  <a class="nav-link" href="sysdes.html" data-toggle="tooltip" data-placement="bottom" title="Generate a system design diagram">System design</a>
 			</li>
 			<li class="nav-item">
-			  <a class="nav-link active" href="sysdessource.html" data-toggle="tooltip" data-placement="bottom" title="Show configuration file">System design source</a>
+			  <a class="nav-link" href="sysdessource.html" data-toggle="tooltip" data-placement="bottom" title="Show configuration file">System design source</a>
 			</li>
 			<li class="nav-item">
 			  <a class="nav-link" href="result.html" data-toggle="tooltip" data-placement="bottom" title="Show result values">Result</a>

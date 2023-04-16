@@ -1,11 +1,18 @@
-pytest
-invoke
+# code linters
 pylint
 pycodestyle
 pydocstyle
 mypy
 mccabe
+# auto tests
+pytest
+docker
+docker_composer
+# project actions
+invoke
+# doc generator
 sphinx
 sphinxcontrib-napoleon
 enum_tools
 sphinx_toolbox
+plantumlcli

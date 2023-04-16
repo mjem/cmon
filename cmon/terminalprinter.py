@@ -37,7 +37,7 @@ class TerminalPrinter:
 		self.unindent()
 
 	def label(self, name=None, label=None):
-		"""Show an objects label if it has one, otherwise it's name."""
+		"""Show an objects label if it has one, otherwise its name."""
 		if label is not None:
 			return " '{label}'".format(label=label)
 

@@ -1,8 +1,17 @@
+# for ssh connections to targets
 paramiko
+# for making http retrievals
 httpx
+# expand website templates
 jinja2
+# nice printing in the website and console output
 humanize
-# psycopg2
+pygments
+# make sure sqlalchemy has psycopg3 support
 psycopg[binary,pool]
-sqlalchemy==2.0.0rc3
-plantumlcli
+# for database connections
+sqlalchemy  # (v2 is defaut now) ==2.0.0rc3
+# configuration
+python-dotenv
+# tab completion of parameters
+argcomplete

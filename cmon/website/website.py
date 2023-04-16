@@ -33,17 +33,21 @@ class URL:
 
 class Website(Testable):
 	"""Representation of a website to be tested."""
+	name = "website"
+	label = "Website"
+	description = "Representation of a website with any number of URLs tested"
+
 	def __init__(self,
+				 label:str,
 				 database:"Database"=None,
-				 url:Iterable[Union[URL,str]]=None,
+				 urls:Iterable[Union[URL,str]]=None,
 				 server:Iterable["Server"]=None,
 				 http_user:str=None,
 				 http_password:str=None,
-				 label:str=None,
 				 ):
 		super().__init__(label=label)
 		self.database = database
-		self.url = url
+		self.urls = urls
 		self.server = server
 		self.http_user = http_user
 		self.http_password = http_password

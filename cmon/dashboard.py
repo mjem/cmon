@@ -19,7 +19,7 @@ class Dashboard:
 	"""A group of related test suites."""
 	def __init__(self,
 				 test_suites:Dict[str, TestSuite],
-				 label:str=None,
+				 label:str,
 				 description:str=None):
 		"""Args:
 		- `test_suites`: List of test suites included in this dashboard

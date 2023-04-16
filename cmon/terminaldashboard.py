@@ -2,48 +2,119 @@
 
 """Implementation of terminal_dashboard() function."""
 
+from typing import Dict
+from typing import Iterable
+from collections import defaultdict
+
 from .dashboard import Dashboard
 from .terminalprinter import TerminalPrinter
 from .measurement import Measurement
+from .measurement import MeasurementState
+from .measurement import traffic_light
+from .testable import Testable
+from .system import System
 
 def terminal_dashboards(output:TerminalPrinter,
-					   dashboards_results:Measurement):
+						# dashboards:Dict[str, Dashboard],
+						system: System,
+						results:Dict[Testable, Iterable[Measurement]]) -> None:
 	"""Show test results to terminal.
-
-	Result is dict of test suite name against test suite results.
-	Test suite results is dict of tuple of test, target against measurement.
-
 	"""
-	for dashboard_results in dashboards_results.children:
-		dashboard = dashboard_results.subject
-		output.begin_section("Results for dashboard {dash}".format(dash=dashboard.label or "Dashboard"))
-		for test_suite_results in dashboard_results.children:
-			test_suite = test_suite_results.subject
-			output.begin_section("Test suite {suite}".format(
-				suite="anon" if test_suite.label is None else test_suite.label))
-			for target_results in test_suite_results.children:
-				target = target_results.subject
-				output.begin_section("{targettype} {label}".format(
-					targettype=target.__class__.__name__,
-					label=target.label or "anon"))
-				for test_result in target_results.children:
-					test = test_result.subject
+	# print("terminal dashboards output", output, "dashboards", dashboards, "results", results)
+	# prescan and build dict subject:result
+	# map of subject to result
+	# subject_results = defaultdict(list)
+	# for result in results:
+		# subject_results[result.subject].append(result)
+
+	dashboards = system.dashboards
+
+	# Count how many child nodes each object has with test results,
+	# so we can easily prune empty nodes below
+	# Traffic light status for container objects
+	children = {}
+	trafficlight = {}
+	for dashboard in dashboards.values():
+		trafficlight[dashboard] = MeasurementState.EMPTY
+		children[dashboard] = 0
+		for test_suite in dashboard.test_suites.values():
+			trafficlight[test_suite] = MeasurementState.EMPTY
+			children[test_suite] = 0
+			for subject in test_suite.subjects.values():
+				trafficlight[subject] = MeasurementState.EMPTY
+				children[dashboard] += len(results[subject])
+				children[test_suite] += len(results[subject])
+				children[subject] = len(results[subject])
+				for measurement in results[subject]:
+					traffic_light(trafficlight, dashboard, measurement.state)
+					traffic_light(trafficlight, test_suite, measurement.state)
+					traffic_light(trafficlight, subject, measurement.state)
+
+	for dashboard in dashboards.values():
+		if children[dashboard] == 0:
+			continue
+
+		output.begin_section(
+			section="Dashboard {dash}".format(dash=dashboard.label),
+			postfix=trafficlight[dashboard].value)
+		for test_suite in dashboard.test_suites.values():
+			if children[test_suite] == 0:
+				continue
+
+			output.begin_section(
+				section="Testsuite {suite}".format(suite=test_suite.label),
+				postfix=trafficlight[test_suite].value)
+			for subject in test_suite.subjects.values():
+				if children[subject] == 0:
+					continue
+
+				output.begin_section(
+					section="{targettype} {label}".format(
+						targettype=subject.__class__.__name__,
+						label=subject.label),
+					postfix=trafficlight[subject].value)
+				for result in results[subject]:
 					output.begin_section("Test {testname}".format(
-						testname=getattr(test, "label", test.__name__)),
-										 test_result.state.value)
-					for message in test_result.messages:
-						output.write_line("Message {label}: {value}".format(
-							label=message.name, value=message.value))
+						testname=result.test_fn.label),
+										 result.state.value)
+					for message in result.messages:
+						if message.description.multiple is None:
+							output.write_line("{label}: {value}{unit}".format(
+								label=message.description.label,
+								value=message.value,
+								unit="" if message.description.unit is None else " {u}".format(u=message.description.unit)
+							))
+
+						elif message.description.multiple is dict:
+							if message.error is None:
+								output.write_line("{label} ({param}): {value}{unit}".format(
+									label=message.description.label,
+									param=message.parameter,
+									value=message.value,
+									unit="" if message.description.unit is None else " {u}".format(u=message.description.unit)
+								))
+
+							else:
+								output.write_line("{label} ({param}) ERROR: {message}".format(
+									label=message.description.label,
+									param=message.parameter,
+									message=message.error))
+
+						else:
+							raise NotImplementedError()
 
 					output.end_section()
 
-				link_strs = []
-				for link in target.links():
-					link_strs.append(link.label or "anon")
+				# link_strs = []
+				# for link in target.links():
+					# link_strs.append(link.label or "anon")
 
-				if len(link_strs) > 0:
-					output.write_line("Links: {links}".format(links=", ".join(link_strs)))
+				# if len(link_strs) > 0:
+					# output.write_line("Links: {links}".format(links=", ".join(link_strs)))
 
 				output.end_section()
 
 			output.end_section()
+
+		output.end_section()
+

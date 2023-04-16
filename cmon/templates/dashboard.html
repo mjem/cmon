@@ -4,7 +4,7 @@
 	<meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
 	<link rel="icon" type="image/x-icon" href="cmon.ico">
-	<title>Dashboard {{dashboards_result.subject.nav_title}}</title>
+	<title>Dashboard {{system.navigation.nav_title}}</title>
 	<link href="bootstrap.min.css" rel="stylesheet">
 	<style>
 	 h2 {
@@ -22,7 +22,7 @@
 	<script src="bootstrap.bundle.min.js"></script>
 	<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
 	  <div class="container-fluid">
-		<a class="navbar-brand" href="{{dashboards_result.subject.nav_url}}" data-toggle="tooltip" data-placement="bottom" title="{{dashboards_result.subject.nav_tooltip}}">{{dashboards_result.subject.nav_title}}</a>
+		<a class="navbar-brand" href="{{system.navigation.url}}" data-toggle="tooltip" data-placement="bottom" title="{{system.navigation.tooltip}}">{{system.navigation.title}}</a>
 		<button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
 		  <span class="navbar-toggler-icon"></span>
 		</button>
@@ -47,39 +47,36 @@
 		</div>
 	  </div>
 	</nav>
-	{%for dashboard_result in dashboards_result.children%}
-	  <h1 data-bs-toggle="collapse" data-bs-target="#collapseDashboard" data-toggle="tooltip" data-placement="bottom" title="{{dashboard_result.subject.description}}">{{bigright}} {{theme.icons["Dashboard"]}}{{theme.prefixes["Dashboard"]}}{{dashboard_result.subject.label}} <span class="{{theme.states[dashboard_result.state]}}">{{dashboard_result.state.value}}</span></h1>{%for test_suite_result in dashboard_result.children%}
-		<div class="collapse show" id="collapseDashboard" data-toggle="tooltip" data-placement="bottom" title="{{test_suite_result.subject.description}}">>
-		  <br><h2 data-bs-toggle="collapse" data-bs-target="#collapseSuite{{loop.index}}">{{bigright}} {{theme.icons["TestSuite"]}}{{theme.prefixes["TestSuite"]}}{{test_suite_result.subject.label}} <span class="{{theme.states[test_suite_result.state]}}">{{test_suite_result.state.value}}</span></h2>
+	{%for dashboard in system.dashboards.values()%}
+	  {%if children[dashboard]%}
+	  <h1 data-bs-toggle="collapse" data-bs-target="#collapseDashboard" data-toggle="tooltip" data-placement="bottom" title="{{dashboard.description}}">{{bigright}} {{theme.icons["Dashboard"]}}{{theme.prefixes["Dashboard"]}}{{dashboard.label}} <span class="{{theme.states[trafficlight[dashboard]]}}">{{trafficlight[dashboard].value}}</span></h1>{%for test_suite in dashboard.test_suites.values()%}
+		{%if children[test_suite]%}
+		<div class="collapse show" id="collapseDashboard" data-toggle="tooltip" data-placement="bottom" title="{{test_suite.description}}">
+		  <br><h2 data-bs-toggle="collapse" data-bs-target="#collapseSuite{{loop.index}}">{{bigright}} {{theme.icons["TestSuite"]}}{{theme.prefixes["TestSuite"]}}{{test_suite.label}} <span class="{{theme.states[trafficlight[test_suite]]}}">{{trafficlight[test_suite].value}}</span></h2>
 	  <div class="container collapse show" id="collapseSuite{{loop.index}}">
-		<div class="row">{%for target_result in test_suite_result.children%}
-		  <div class="col border rounded border-secondary m-1">
-			<p><!-- target --><span data-toggle="tooltip" data-placement="bottom" title="{{target_result.subject.description}}">{{theme.icons[target_result.subject.__class__.__name__]}}{{theme.prefixes[target_result.subject.__class__.__name__]}}{{target_result.subject.label}}</span> <span class="{{theme.states[target_result.state]}}">{{target_result.state.value}}</span></p>
+		<div class="row">{%for subject in test_suite.subjects.values()%}
+		  {%if children[subject]%}
+			<div class="col border rounded border-secondary m-1">
+			  <p><!-- target --><span data-toggle="tooltip" data-placement="bottom" title="{{subject.description}}">{{theme.icons[subject.__class__.name]}}{{theme.prefixes[subject.__class__.name]}}{{subject.label}}</span> <span class="{{theme.states[trafficlight[subject]]}}">{{trafficlight[subject].value}}</span></p>
 			<p>Tests:
-			<ul>{%for test_result in target_result.children%}
-			  <li><!-- test --><span role="button" data-toggle="tooltip" data-placement="right" title="{{test_result.subject.description}}">{{test_result.subject.label or test_result.subject.__name__}} <span class="{{theme.states[test_result.state]}}">{{test_result.state.value}}</span></span>
+			<ul>{%for test_result in results[subject]%}
+			  <li><!-- test --><span role="button" data-toggle="tooltip" data-placement="right" title="{{test_result.test_fn.description}}">{{test_result.test_fn.label}} <span class="{{theme.states[test_result.state]}}">{{test_result.state.value}}</span></span>
 				<ul>{%for message in test_result.messages%}
-				  <li><!-- message -->{{message.name}}: {{message.value}}</li>{%endfor%}<!-- message -->
+				  <li><!-- message -->{{message.description.label}}{%if message.parameter%} ({{message.parameter}}){%endif%} {%if message.error%}ERROR: {{message.error}}{%else%}: {{message.value}}{%endif%}</li>{%endfor%}<!-- message -->
 				</ul>
 			  </li>{%endfor%}<!-- test -->
 			</ul></p>
-			{%if target_result.subject.links()|length > 0%}<p>Links:
-			<ul>{%for link in target_result.subject.links()%}
+			{%if subject.links()|length > 0%}<p>Links:
+			<ul>{%for link in subject.links()%}
 			  <li>{{link.__class__.__name__}} {{link.label}}</li>{%endfor%} <!-- link -->
 			</ul></p>{%endif%}
 		  </div><!-- target -->
+		  {%endif%}
 		  {%- if (loop.index0 % 3) == 2 %}</div><div class="row">{%endif%}{%endfor%} <!-- target -->
 		  </div> <!-- row -->
-	  </div><!-- container -->{%endfor%}<!-- test suite -->
-	  {%if dashboard_result.messages|length > 0%}
-	  <p>Dashboard messages
-	  <ul>{%for message in dashboard_result.messages%}
-		<li><!-- message -->{{message.name}}: {{message.value}}</li>{%endfor%}<!-- message -->
-	  </ul>
-	  </p>
-	  {%endif%}
+	  </div><!-- container -->{%endif%}{%endfor%}<!-- test suite -->
   </div><!-- container collapse -->
-  {%endfor%} <!-- dashboards -->
+  {%endif%}{%endfor%} <!-- dashboards -->
 <script>
   $(function () {
 	$('[data-toggle="tooltip"]').tooltip()

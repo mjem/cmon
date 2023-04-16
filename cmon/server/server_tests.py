@@ -2,15 +2,17 @@
 
 """Implementation of tests against a server."""
 
+import time
 import logging
 from copy import copy
 
 import humanize
 
 from ..measurement import Measurement
-# from ..measurement import measurement_fn
+from ..measurement import measure
 from ..measurement import MeasurementState
 from ..measurement import MessageDescription
+from ..measurement import Message
 from .server import Server
 from .server import ConnectionException
 from ..context import Context
@@ -31,47 +33,82 @@ message_description_mount = MessageDescription(
 	# importance=Important.DASHBOARD,
 	)
 
-# @measurement_fn(
-	# label="ping",
-	# description="Check we can ping the server",
-	# subject=Server)
-def measure_server_ping(target:Server, context:Context):
+@measure(
+	label="Ping",
+	name="ping",
+	description=("Check we can ping the server. Failed only indicates a lack of ICMP response "
+				 "and does not mean the server itself is down"),
+	subject_type=Server,
+	messages=[
+		MessageDescription(
+			name="ip",
+			label="Response time",
+			description="Response time per address",
+			unit="ms",
+			datatype=float,
+			multiple=dict)
+	]
+)
+def measure_server_ping(subject:Server, context:Context):
 	"""Check the server responds to ping.
 
 	Requires a response to an ICMP packet and failure to ping doesn't
 	necessarily mean the server is down."""
-	if len(target.ssh_config) > 0 or len(target.ssh_user) > 0:
-		return Measurement(state=MeasurementState.NOT_APPLICABLE)
+	# if len(subject.ssh_config) > 0 or len(subject.ssh_user) > 0:
+		# print(subject.ssh_config)
+		# print(subject.ssh_user)
+		# 1/0
+		# return Measurement(state=MeasurementState.NOT_APPLICABLE)
 
 	if context.simulate:
 		logger.info("Simulating a ping of {s}".format(s=target))
 		return
 
-	shelled = shell("ping -c 1 " + target.hostname)
-	# result = shell("ping -c 1 " + target.hostname, verbose=True, echo=True)
+	start_time = time.time()
+	shelled = shell("ping -c 1 " + subject.hostname)
+	duration = time.time() - start_time
+	# result = shell("ping -c 1 " + subject.hostname, verbose=True, echo=True)
 	# logger.info("Ping status code {c}".format(c=result.returncode))
 	valid = shell_validate(shelled)
-	# logger.info("Successful ping of " + target.hostname)
+	# logger.info("Successful ping of " + subject.hostname)
 	if context.verbose:
-		logger.info(result.stdout)
+		logger.info(shelled.stdout)
 
 	if valid is True:
-		result = Measurement(state=MeasurementState.GOOD)
-		result.add_message("host", target.hostname)
+		result = Measurement(state=MeasurementState.GOOD,
+							 messages=[
+								 Message(name="ip",
+										 parameter=subject.hostname,
+										 # seconds to ms with 1 d.p.
+										 value=int(duration*10000)/10)])
+		# result.add_message("host", subject.hostname)
 		return result
 
 	result = Measurement(state="FAILED")
-	result.add_message("ping.{hostname}".format(hostname=target.hostname), valid)
+	result.add_message(Message(name="ip",
+							   parameter=subject.hostname,
+							   error="ping command failed"))
 	return result
 
-measure_server_ping.name = "ping"
-measure_server_ping.label = "Ping"
-measure_server_ping.description = "Check we can ping the server"
-measure_server_ping.subject_class = Server
 
-def measure_server_ssh_aliveness(target:Server, context:Context):
+@measure(
+	label="SSH aliveness",
+	name="ssh",
+	description="Check we can ssh into the server",
+	subject_type=Server,
+	messages=[
+		MessageDescription(
+			name="user",
+			label="User",
+			description="SSH username",
+			unit="bytes",
+			display="humanise",
+			datatype=str)
+	]
+)
+def measure_server_ssh_aliveness(subject:Server, context:Context):
 	try:
-		client = target.ssh_connect()
+		client = subject.ssh_connect()
 		if client is None:
 			return Measurement(state=MeasurementState.NOT_APPLICABLE)
 
@@ -79,25 +116,46 @@ def measure_server_ssh_aliveness(target:Server, context:Context):
 		return Measurement(state=MeasurementState.FAILED, message=str(e))
 
 	result = Measurement(state=MeasurementState.GOOD)
-	if target.ssh_user is not None:
-		if is_listlike(target.ssh_user):
-			result.add_message("user", target.ssh_user[0])
+	if subject.ssh_user is not None:
+		if is_listlike(subject.ssh_user):
+			result.add_message(Message("user", subject.ssh_user[0]))
 
 		else:
-			result.add_message("user", target.ssh_user)
+			result.add_message(Message("user", subject.ssh_user))
 
 	return result
 
-measure_server_ssh_aliveness.name = "ssh"
-measure_server_ssh_aliveness.label = "SSH aliveness"
-measure_server_ssh_aliveness.description = "Check we can ssh into the server"
 
-def measure_server_ssh_mountpoints(target:Server, context:Context) -> Measurement:
+@measure(
+	label="Mounts",
+	name="mount",
+	description="Check all configured mountpoints have a partition mounted",
+	subject_type=Server,
+	messages=[
+		MessageDescription(
+			name="size",
+			label="Capacity",
+			description="Total size of partition",
+			unit="bytes",
+			display="humanise",
+			datatype=int,
+			multiple=dict),
+		MessageDescription(
+			name="used",
+			label="Used",
+			description="Space used in partition",
+			unit="bytes",
+			display="humanise",  # show_disk_usage("size"),
+			datatype=int,
+			multiple=dict)
+	]
+)
+def measure_server_ssh_mountpoints(subject:Server, context:Context) -> Measurement:
 	"""Check all configured mountpoints are mounted."""
-	if target.mounts is None:
+	if subject.mounts is None:
 		return Measurement("NOT_APPLICABLE")
 
-	client = target.ssh_connect()
+	client = subject.ssh_connect()
 	if client is None:
 		return Measurement(state=MeasurementState.FAILED, message=str(e))
 
@@ -110,21 +168,19 @@ def measure_server_ssh_mountpoints(target:Server, context:Context) -> Measuremen
 	result = Measurement()
 	good = 0
 	# For each mount we are configured to look for
-	for req in target.mounts:
+	for req in subject.mounts:
 		# logger.info("checking if " + req.mountpoint + " was found")
 		found_mount = found_mounts.get(req.mountpoint)
 		if found_mount:
-			value = "{used} / {total} used".format(
-				used=humanize.naturalsize(found_mount.used),
-				total=humanize.naturalsize(found_mount.total))
+			result.add_message(Message(name="size", value=found_mount.total, parameter=req.mountpoint))
+			result.add_message(Message(name="used", value=found_mount.used, parameter=req.mountpoint))
 			good += 1
 
 		else:
-			value = "missing"
+			result.add_message(Message(name="size", error="not mounted", parameter=req.mountpoint))
+			result.add_message(Message(name="used", error="not mounted", parameter=req.mountpoint))
 
-		result.add_message(req.mountpoint, value, message_description_mount)
-
-	if good == len(target.mounts):
+	if good == len(subject.mounts):
 		result.state = "GOOD"
 
 	else:
@@ -132,12 +188,38 @@ def measure_server_ssh_mountpoints(target:Server, context:Context) -> Measuremen
 
 	return result
 
-measure_server_ssh_mountpoints.name = "mounts"
-measure_server_ssh_mountpoints.label = "Mountpoints"
-measure_server_ssh_mountpoints.description = """
-Check all configured mountpoints have a partition mounted"""
-
-def measure_server_ssh_sysinfo(target:Server, context:Context):
+@measure(
+	label="System info",
+	name="sysinfo",
+	description="Show system information",
+	subject_type=Server,
+	messages=[
+		MessageDescription(
+			name="os",
+			label="OS",
+			description="Operating system"),
+		MessageDescription(
+			name="cpu",
+			label="CPU count",
+			description="Number of CPU cores",
+			datatype=int),
+		MessageDescription(
+			name="memtotal",
+			label="Total memory",
+			description="Amount of memory installed on the server",
+			datatype=int,
+			unit="bytes",
+			hidden=True),
+		MessageDescription(
+			name="memfree",
+			label="Free memory",
+			description="Amount of unused memory on the server",
+			datatype=int,
+			unit="bytes",
+			display="{{value|filesizeformat}} free of {{memtotal.value|filesizeformat}}"),
+	]
+)
+def measure_server_ssh_sysinfo(subject:Server, context:Context):
 	"""Retreive system info as measurement messages.
 
 	Reads:
@@ -147,7 +229,7 @@ def measure_server_ssh_sysinfo(target:Server, context:Context):
 	- net i/o
 	- disk i/o
 	"""
-	client = target.ssh_connect()
+	client = subject.ssh_connect()
 	if client is None:
 		return Measurement(MeasurementState.NOT_APPLICABLE)
 
@@ -162,7 +244,7 @@ def measure_server_ssh_sysinfo(target:Server, context:Context):
 		key, _, value = line.partition("=")
 		# print("len",len(line),"key",key,"value",value)
 		if key == "PRETTY_NAME":
-			result.add_message("OS", value.strip("\""))
+			result.add_message(Message("os", value.strip("\"")))
 
 	# CPU
 	stdin, stdout, stderr = client.exec_command("lscpu")
@@ -171,7 +253,7 @@ def measure_server_ssh_sysinfo(target:Server, context:Context):
 		value = value.lstrip(" ")
 		# print("lscpu key",key,"value",value)
 		if key == "CPU(s)":
-			result.add_message("CPU", value)
+			result.add_message(Message("cpu", value))
 
 	# Memory
 	stdin, stdout, stderr = client.exec_command("free")
@@ -182,29 +264,50 @@ def measure_server_ssh_sysinfo(target:Server, context:Context):
 			continue
 
 		if cells[0] == "Mem:":
-			result.add_message("RAM", "{total}M total {used}M used".format(
-				# total=humanize.naturalsize(int(cells[1])*1000),
-				# used=humanize.naturalsize(int(cells[2])*1000)))
-				total=int(cells[1])//1024,
-				used=int(cells[2])//1024))
+			result.add_message(Message("memtotal", cells[1]))
+			result.add_message(Message("memfree", cells[2]))
 
 	return result
 
-measure_server_ssh_sysinfo.name = "sysinfo"
-measure_server_ssh_sysinfo.label = "System info"
-measure_server_ssh_sysinfo.description = """
-Show system information"""
 
-def measure_server_ssh_docker(target:Server, context:Context):
+# server.myserver.docker.image.containername=imagename
+# server.myserver.docker.uptime.containername=uptime
+
+# Server myserver:
+#  Docker:
+#   - mycontainer (myimage) uptime 3 days
+
+@measure(
+	label="Docker",
+	name="docker",
+	description="Report on running docker containers",
+	subject_type=Server,
+	messages=[
+		MessageDescription(
+			name="image",
+			label="Docker image",
+			description="Name of docker image used by container",
+			multiple=dict,
+			display="{{parameter}} ({{value}}) uptime {{uptime.value}})"),
+		MessageDescription(
+			name="uptime",
+			label="Docker runtime",
+			description="Time docker container has been running for",
+			multiple=dict,
+			datatype=str,  # timedelta,
+			hidden=True),
+	]
+)
+def measure_server_ssh_docker(subject:Server, context:Context):
 	"""Retrieve information about running docker containers.
 
 	Uses primary ssh connection and docker command line tool."""
 	# Check we have ssh connections configured
-	if target.docker_containers is None:
+	if subject.docker_containers is None:
 		return Measurement(MeasurementState.NOT_APPLICABLE)
 
 	# If ssh connection is not available for some reason then skip
-	client = target.ssh_connect()
+	client = subject.ssh_connect()
 	if client is None:
 		return Measurement(MeasurementState.NOT_APPLICABLE)
 
@@ -216,7 +319,6 @@ def measure_server_ssh_docker(target:Server, context:Context):
 		if len(line) == 0:
 			continue
 
-		# print("LINE", line)
 		container_name, image_name, age = line.split(",")
 		if image_name.startswith("harbor.opscloud.eumetsat.int/"):
 			image_name = image_name[len("harbor.opscloud.eumetsat.int/"):]
@@ -224,11 +326,8 @@ def measure_server_ssh_docker(target:Server, context:Context):
 		if age.endswith(" ago"):
 			age = age[:-len(" ago")]
 
-		result.add_message(container_name, "{image} running {age}".format(
-			image=image_name, age=age))
+		result.add_message(Message("image", image_name, parameter=container_name))
+		result.add_message(Message("uptime", age, parameter=container_name))
 
 	return result
 
-measure_server_ssh_docker.name = "docker"
-measure_server_ssh_docker.label = "Docker containers"
-measure_server_ssh_docker.description = """Report on running docker containers"""
