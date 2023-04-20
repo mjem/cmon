@@ -25,14 +25,6 @@ logger = logging.getLogger()
 
 NEWLINE = "\n"
 
-message_description_mount = MessageDescription(
-	label="Mount",
-	description="Name of a mount point with human-readable total and used size reported",
-	datatype=str,
-	# quantisation=Nargs.MULTIPLE,
-	# importance=Important.DASHBOARD,
-	)
-
 @measure(
 	label="Ping",
 	name="ping",
@@ -45,6 +37,7 @@ message_description_mount = MessageDescription(
 			label="Response time",
 			description="Response time per address",
 			unit="ms",
+			sf=4,
 			datatype=float,
 			multiple=dict)
 	]
@@ -80,7 +73,7 @@ def measure_server_ping(subject:Server, context:Context):
 								 Message(name="ip",
 										 parameter=subject.hostname,
 										 # seconds to ms with 1 d.p.
-										 value=int(duration*10000)/10)])
+										 value=duration*1000)])
 		# result.add_message("host", subject.hostname)
 		return result
 
@@ -101,8 +94,6 @@ def measure_server_ping(subject:Server, context:Context):
 			name="user",
 			label="User",
 			description="SSH username",
-			unit="bytes",
-			display="humanise",
 			datatype=str)
 	]
 )
@@ -137,15 +128,17 @@ def measure_server_ssh_aliveness(subject:Server, context:Context):
 			label="Capacity",
 			description="Total size of partition",
 			unit="bytes",
-			display="humanise",
+			# humanize=True,  # display=MessageDisplay.BYTE_SIZE,
+			template="{{parameter}}: {{used|filesizeformat}} used of {{value|filesizeformat}}",
 			datatype=int,
 			multiple=dict),
 		MessageDescription(
 			name="used",
 			label="Used",
 			description="Space used in partition",
-			unit="bytes",
-			display="humanise",  # show_disk_usage("size"),
+			# unit="bytes",
+			# humanize=True,  # show_disk_usage("size"),
+			hidden=True,
 			datatype=int,
 			multiple=dict)
 	]
@@ -209,6 +202,7 @@ def measure_server_ssh_mountpoints(subject:Server, context:Context) -> Measureme
 			description="Amount of memory installed on the server",
 			datatype=int,
 			unit="bytes",
+			humanize=True,
 			hidden=True),
 		MessageDescription(
 			name="memfree",
@@ -216,7 +210,9 @@ def measure_server_ssh_mountpoints(subject:Server, context:Context) -> Measureme
 			description="Amount of unused memory on the server",
 			datatype=int,
 			unit="bytes",
-			display="{{value|filesizeformat}} free of {{memtotal.value|filesizeformat}}"),
+			humanize=True,
+			template="RAM: {{value|filesizeformat}} free of {{memtotal|filesizeformat}}"
+		),
 	]
 )
 def measure_server_ssh_sysinfo(subject:Server, context:Context):
@@ -229,6 +225,7 @@ def measure_server_ssh_sysinfo(subject:Server, context:Context):
 	- net i/o
 	- disk i/o
 	"""
+	logger.debug("Server sysinfo for {name}".format(name=subject))
 	client = subject.ssh_connect()
 	if client is None:
 		return Measurement(MeasurementState.NOT_APPLICABLE)
@@ -288,7 +285,8 @@ def measure_server_ssh_sysinfo(subject:Server, context:Context):
 			label="Docker image",
 			description="Name of docker image used by container",
 			multiple=dict,
-			display="{{parameter}} ({{value}}) uptime {{uptime.value}})"),
+			template="{{parameter}} ({{value}}) uptime {{uptime}}"
+		),
 		MessageDescription(
 			name="uptime",
 			label="Docker runtime",
@@ -330,4 +328,3 @@ def measure_server_ssh_docker(subject:Server, context:Context):
 		result.add_message(Message("uptime", age, parameter=container_name))
 
 	return result
-

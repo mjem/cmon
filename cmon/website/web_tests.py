@@ -18,7 +18,7 @@ logger = logging.getLogger("webtests")
 @measure(
 	label="Web requests",
 	name="web",
-	description="Retireve URLs from webserver",
+	description="Retrieve URLs from webserver",
 	subject_type=Website,
 	messages=[
 		MessageDescription(
@@ -26,6 +26,7 @@ logger = logging.getLogger("webtests")
 			label="Response time",
 			description="Check timing, error code and non-empty response",
 			unit="ms",
+			sf=4,
 			multiple=dict,
 			datatype=float)
 	]
@@ -37,9 +38,18 @@ def measure_web_urls(subject:Website, context:Context):
 		response = subject.get(url)
 		check = subject.validate(response)
 		if check is True:
+			if isinstance(url, str):
+				display_url = url
+
+			else:
+				display_url = str(url)
+
+			if display_url.endswith("/"):
+				display_url = display_url[:-1]
+
 			result.add_message(Message("response",
 									   response.elapsed.total_seconds() * 1000,
-									   parameter=url))
+									   parameter=display_url))
 
 		else:
 			result.add_message(Message("response",

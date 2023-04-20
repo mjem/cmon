@@ -47,34 +47,33 @@
 		</div>
 	  </div>
 	</nav>
-	{%for dashboard in system.dashboards.values()%}
+	{%for dashboard_name, dashboard in system.dashboards.items()%}
 	  {%if children[dashboard]%}
-	  <h1 data-bs-toggle="collapse" data-bs-target="#collapseDashboard" data-toggle="tooltip" data-placement="bottom" title="{{dashboard.description}}">{{bigright}} {{theme.icons["Dashboard"]}}{{theme.prefixes["Dashboard"]}}{{dashboard.label}} <span class="{{theme.states[trafficlight[dashboard]]}}">{{trafficlight[dashboard].value}}</span></h1>{%for test_suite in dashboard.test_suites.values()%}
+	  <h1 data-bs-toggle="collapse" data-bs-target="#collapseDashboard{{dashboard_name}}" data-toggle="tooltip" data-placement="bottom" title="{{dashboard.description}}">{{bigright}} {{theme.icons["Dashboard"]}}{{theme.prefixes["Dashboard"]}}{{dashboard.label}}<span class="{{theme.states[trafficlight[dashboard]]}}">{{trafficlight[dashboard].value}}</span></h1><div class="collapse show" id="collapseDashboard{{dashboard_name}}">{%for test_suite_name, test_suite in dashboard.test_suites.items()%}
 		{%if children[test_suite]%}
-		<div class="collapse show" id="collapseDashboard" data-toggle="tooltip" data-placement="bottom" title="{{test_suite.description}}">
-		  <br><h2 data-bs-toggle="collapse" data-bs-target="#collapseSuite{{loop.index}}">{{bigright}} {{theme.icons["TestSuite"]}}{{theme.prefixes["TestSuite"]}}{{test_suite.label}} <span class="{{theme.states[trafficlight[test_suite]]}}">{{trafficlight[test_suite].value}}</span></h2>
-	  <div class="container collapse show" id="collapseSuite{{loop.index}}">
+		  <br><h2 data-bs-toggle="collapse" data-bs-target="#collapseSuite{{dashboard_name}}{{test_suite_name}}">{{bigright}} {{theme.icons["TestSuite"]}}{{theme.prefixes["TestSuite"]}}{{test_suite.label}} <span class="{{theme.states[trafficlight[test_suite]]}}">{{trafficlight[test_suite].value}}</span></h2>
+	  <div class="container collapse show" id="collapseSuite{{dashboard_name}}{{test_suite_name}}">
 		<div class="row">{%for subject in test_suite.subjects.values()%}
 		  {%if children[subject]%}
 			<div class="col border rounded border-secondary m-1">
 			  <p><!-- target --><span data-toggle="tooltip" data-placement="bottom" title="{{subject.description}}">{{theme.icons[subject.__class__.name]}}{{theme.prefixes[subject.__class__.name]}}{{subject.label}}</span> <span class="{{theme.states[trafficlight[subject]]}}">{{trafficlight[subject].value}}</span></p>
 			<p>Tests:
-			<ul>{%for test_result in results[subject]%}
+			<ul>{%for test_result in results[subject]%}{%if test_result.state.name != "NOT_APPLICABLE"%}
 			  <li><!-- test --><span role="button" data-toggle="tooltip" data-placement="right" title="{{test_result.test_fn.description}}">{{test_result.test_fn.label}} <span class="{{theme.states[test_result.state]}}">{{test_result.state.value}}</span></span>
-				<ul>{%for message in test_result.messages%}
-				  <li><!-- message -->{{message.description.label}}{%if message.parameter%} ({{message.parameter}}){%endif%} {%if message.error%}ERROR: {{message.error}}{%else%}: {{message.value}}{%endif%}</li>{%endfor%}<!-- message -->
+				<ul>{%for display_message in test_result.message_lines()%}
+				  <li>{{display_message}}</li>{%endfor%}
 				</ul>
-			  </li>{%endfor%}<!-- test -->
+			  </li>{%endif%}{%endfor%}<!-- test -->
 			</ul></p>
 			{%if subject.links()|length > 0%}<p>Links:
 			<ul>{%for link in subject.links()%}
 			  <li>{{link.__class__.__name__}} {{link.label}}</li>{%endfor%} <!-- link -->
 			</ul></p>{%endif%}
-		  </div><!-- target -->
+		  </div><!-- subject -->
 		  {%endif%}
 		  {%- if (loop.index0 % 3) == 2 %}</div><div class="row">{%endif%}{%endfor%} <!-- target -->
 		  </div> <!-- row -->
-	  </div><!-- container -->{%endif%}{%endfor%}<!-- test suite -->
+	  </div><!-- container -->{%endif%}{%endfor%}</div><!-- test suite -->
   </div><!-- container collapse -->
   {%endif%}{%endfor%} <!-- dashboards -->
 <script>

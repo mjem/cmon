@@ -46,8 +46,11 @@ class Database(Testable):
 		`password`: Password if not configured in ~/.pgppass or other standard place
 		"""
 		super().__init__(label=label)
-		if dialect == "postgresql":
-			dialect = "postgresql+psycopg"
+		# Use psycopg3 instead of the default psycopg2
+		# might give better performance but beware of errors on shutdown
+		# on opensuse / python3.9 system
+		# if dialect == "postgresql":
+			# dialect = "postgresql+psycopg"
 
 		self.dialect = dialect
 		self.host = host
@@ -57,6 +60,11 @@ class Database(Testable):
 		self.password = password
 		self.engine = None
 		self.connection = None
+
+	def __del__(self):
+		if self.connection is not None:
+			self.connection.rollback()
+			del self.connection
 
 	def dsn(self):
 		return "{dialect}://{user}{password}@{host}{port}/{name}".format(

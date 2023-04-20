@@ -25,7 +25,7 @@ def main():
 	parser = argparse.ArgumentParser(
 		description="Runtime tests of a system of servers",
 		formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-	parser.add_argument("--show-config",
+	parser.add_argument("--validate",
 						action="store_true",
 						help="Show dashboard configuration to console")
 	parser.add_argument("--show-subjects",
@@ -102,7 +102,7 @@ def main():
 	if system is None:
 		parser.error("Config file is missing system object")
 
-	if args.show_config:
+	if args.validate:
 		target = TerminalPrinter()
 		for dashboard in system.dashboards.values():
 			dashboard.show(target)

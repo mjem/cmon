@@ -74,34 +74,14 @@ def terminal_dashboards(output:TerminalPrinter,
 						label=subject.label),
 					postfix=trafficlight[subject].value)
 				for result in results[subject]:
+					if result.state is MeasurementState.NOT_APPLICABLE:
+						continue
+
 					output.begin_section("Test {testname}".format(
 						testname=result.test_fn.label),
 										 result.state.value)
-					for message in result.messages:
-						if message.description.multiple is None:
-							output.write_line("{label}: {value}{unit}".format(
-								label=message.description.label,
-								value=message.value,
-								unit="" if message.description.unit is None else " {u}".format(u=message.description.unit)
-							))
-
-						elif message.description.multiple is dict:
-							if message.error is None:
-								output.write_line("{label} ({param}): {value}{unit}".format(
-									label=message.description.label,
-									param=message.parameter,
-									value=message.value,
-									unit="" if message.description.unit is None else " {u}".format(u=message.description.unit)
-								))
-
-							else:
-								output.write_line("{label} ({param}) ERROR: {message}".format(
-									label=message.description.label,
-									param=message.parameter,
-									message=message.error))
-
-						else:
-							raise NotImplementedError()
+					for line in result.message_lines():
+						output.write_line(line)
 
 					output.end_section()
 

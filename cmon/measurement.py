@@ -11,6 +11,9 @@ from typing import Dict
 from datetime import datetime
 from datetime import timedelta
 
+import jinja2
+import humanize
+
 from .testable import Testable
 
 logger = logging.getLogger()
@@ -43,8 +46,11 @@ class MessageDescription:
 				 # and messages shown only on the tooltip
 				 datatype:object=str,
 				 unit:str=None,
-				 display:str=None,
+				 sf:int=None,
+				 # display:str=None,
+				 humanize=False,
 				 hidden:bool=False,
+				 template:str=None,
 				 multiple:object=None):
 		"""Args:
 		- `label`: Visible brief label for this measurement messaage
@@ -53,6 +59,10 @@ class MessageDescription:
 		- `description`: Long label for this message, used for example in mouse popups
 		- `datatype`: Datatype (str, bool, int, float, datetime, timedelta, url) for the message
 		- `unit`: Allow numerical types to specify a unit
+		- `sf`: Significant figures for numerical displays
+		- `humanize`: Use the Python humanize library to show size in bytes in a human friendly
+		way. Exact format depends on unit and datatype
+		- `hidden`: Don't show this message in dashboard
 		- `multiple`: Message is singular (None), optional (bool), a list (list) or named (dict)
 		"""
 		self.label = label
@@ -60,8 +70,11 @@ class MessageDescription:
 		self.description = description
 		self.datatype = datatype
 		self.unit = unit
-		self.display = display
+		self.sf = sf
+		self.humanize = humanize
+		self.hidden = hidden
 		self.multiple = multiple
+		self.template = template
 
 def measure(
 		label:str,
@@ -173,38 +186,92 @@ class Measurement:
 					# name:str,
 					# value:Union[str, int, float, bool, datetime, timedelta],
 					# description:MessageDescription=None):
+		"""Add a message giving more information about our subject."""
 		self.messages.append(message)
 		# self.messages.append(Message(name=name, value=value, description=description))
 
 	def add_child(self, child:"Measurement"):
+		"""Add a child subject to us."""
 		if self.children is None:
 			self.children = []
 
 		self.children.append(child)
 
-	def traffic_lights(self):
-		"""Set our state based on our childs state."""
-		if self.children is None or len(self.children) == 0:
-			self.state = MeasurementState.NOT_APPLICABLE
-			return
+	def message_lines(self) -> Iterable[str]:
+		"""Yield a series of strings representing our messages."""
+		for message in self.messages:
+			if message.description.hidden is True:
+				continue
 
-		good_count = 0  # GOOD
-		bad_count = 0  # either FAILED or ERROR
-		for child in self.children:
-			if child.state is MeasurementState.GOOD:
-				good_count += 1
+			if isinstance(message.value, float) and message.description.sf is not None:
+				display_value = "{{num:.{sf}}}".format(sf=message.description.sf).format(num=message.value)
 
-			elif child.state in (MeasurementState.FAILED, MeasurementState.ERROR):
-				bad_count += 1
+			elif message.description.humanize is True and message.description.unit == "bytes":
+				display_value = humanize.naturalsize(message.value, gnu=True)
 
-		if good_count == len(self.children):
-			self.state = MeasurementState.GOOD
+			else:
+				display_value = message.value
 
-		elif bad_count == len(self.children):
-			self.state = MeasurementState.FAILED
+			if message.description.template is not None:
+				context = {
+					"parameter":message.parameter,
+					"value":message.value,
+					"uptime":{"value":"VVV"}}
+				for other_message in self.messages:
+					if other_message.parameter == message.parameter:
+						context[other_message.name] = other_message.value
 
-		else:
-			self.state = MeasurementState.MIXED
+				yield jinja2.Template(message.description.template).render(context)
+				continue
+
+			if message.description.multiple is None:
+				yield "{label}: {value}{unit}".format(
+					label=message.description.label,
+					value=display_value,
+					unit="" if message.description.unit is None else " {u}".format(u=message.description.unit)
+				)
+
+			elif message.description.multiple is dict:
+				if message.error is None:
+					yield "{label} ({param}): {value}{unit}".format(
+						label=message.description.label,
+						param=message.parameter,
+						value=display_value,
+						unit="" if message.description.unit is None else " {u}".format(u=message.description.unit)
+					)
+
+				else:
+					yield "{label} ({param}) ERROR: {message}".format(
+						label=message.description.label,
+						param=message.parameter,
+						message=message.error)
+
+			else:
+				raise NotImplementedError()
+
+	# def traffic_lights(self):
+	# 	"""Set our state based on our childs state."""
+	# 	if self.children is None or len(self.children) == 0:
+	# 		self.state = MeasurementState.NOT_APPLICABLE
+	# 		return
+
+	# 	good_count = 0  # GOOD
+	# 	bad_count = 0  # either FAILED or ERROR
+	# 	for child in self.children:
+	# 		if child.state is MeasurementState.GOOD:
+	# 			good_count += 1
+
+	# 		elif child.state in (MeasurementState.FAILED, MeasurementState.ERROR):
+	# 			bad_count += 1
+
+	# 	if good_count == len(self.children):
+	# 		self.state = MeasurementState.GOOD
+
+	# 	elif bad_count == len(self.children):
+	# 		self.state = MeasurementState.FAILED
+
+	# 	else:
+	# 		self.state = MeasurementState.MIXED
 
 
 # class TestRun:
@@ -230,7 +297,7 @@ class Measurement:
 def traffic_light(results:Dict[Testable, MeasurementState],
 				  subject:Testable,
 				  new_state:MeasurementState) -> None:
-	"""Set state of parent objects to reflect child results."""
+	"""Helper function to set state of parent objects to reflect child results."""
 	if new_state is MeasurementState.ERROR:
 		results[subject] = MeasurementState.ERROR
 

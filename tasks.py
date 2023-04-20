@@ -177,3 +177,9 @@ def test(c,
 		# import pytest
 		# pytest.?
 		raise NotImplementedError()
+
+@task
+def docker(c,
+		   build=False):
+	if build:
+		c.run("docker build --file docker/Dockerfile --tag cmon:latest .")
