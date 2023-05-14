@@ -104,7 +104,7 @@ def measure_server_ssh_aliveness(subject:Server, context:Context):
 			return Measurement(state=MeasurementState.NOT_APPLICABLE)
 
 	except ConnectionException as e:
-		return Measurement(state=MeasurementState.FAILED, message=str(e))
+		return Measurement(state=MeasurementState.FAILED)#, message=str(e))
 
 	result = Measurement(state=MeasurementState.GOOD)
 	if subject.ssh_user is not None:
@@ -148,9 +148,14 @@ def measure_server_ssh_mountpoints(subject:Server, context:Context) -> Measureme
 	if subject.mounts is None:
 		return Measurement("NOT_APPLICABLE")
 
-	client = subject.ssh_connect()
+	try:
+		client = subject.ssh_connect()
+	except ConnectionException as e:
+		return Measurement(state=MeasurementState.FAILED)#, message=str(e))
+
+	# probably no ssh connection configured
 	if client is None:
-		return Measurement(state=MeasurementState.FAILED, message=str(e))
+		return Measurement("NOT_APPLICABLE")
 
 	stdin, stdout, stderr = client.exec_command("df")
 	error = stderr.read().decode().strip()
@@ -225,10 +230,18 @@ def measure_server_ssh_sysinfo(subject:Server, context:Context):
 	- net i/o
 	- disk i/o
 	"""
-	logger.debug("Server sysinfo for {name}".format(name=subject))
-	client = subject.ssh_connect()
-	if client is None:
+	if subject.ssh_user is None:
+		return Measurement(state=MeasurementState.NOT_APPLICABLE)
+
+	logger.debug("Server sysinfo for {name} ssh user {user}".format(
+		name=subject, user=subject.ssh_user))
+	try:
+		client = subject.ssh_connect()
+	except ConnectionException as e:
 		return Measurement(MeasurementState.NOT_APPLICABLE)
+
+	if client is None:
+		return Measurement(state=MeasurementState.NOT_APPLICABLE)
 
 	# Find OS from /etc/os-release file
 	sftp = client.open_sftp()

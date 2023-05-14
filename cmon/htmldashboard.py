@@ -22,6 +22,7 @@ from .measurement import MeasurementState
 from .measurement import traffic_light
 from .terminalprinter import TerminalPrinter
 from .testable import Testable
+from .result import result_lines
 
 logger = logging.getLogger("output")
 
@@ -192,6 +193,7 @@ def html_dashboards(output_dir:Path,
 		"trafficlight": trafficlight,
 	}
 
+	# Write pages from the website theme
 	page_count = 0
 	for p in theme.pages:
 		page_template, page_output = p
@@ -202,6 +204,14 @@ def html_dashboards(output_dir:Path,
 		h = out.open("w")
 		h.write(tmpl.render(context))
 		page_count += 1
+
+	# Write database friendly result file
+	tp = TerminalPrinter(output_dir.joinpath("result.txt").open("w"))
+	for subject_results in results.values():
+		for result in subject_results:
+			result_lines(tp, result)
+
+	# Write friendly errors file
 
 	logger.info("Wrote {pages} pages {statics} static files to {outdir}".format(
 		pages=page_count, statics=static_count, outdir=output_dir))

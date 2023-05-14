@@ -55,7 +55,6 @@ class System:
 		"""Run all tests against all subjects and return a flat list of results."""
 		results = defaultdict(list)  # Subject : list(Measurement)
 		for subject in self.all_subjects():
-			logger.info("Subject {s}".format(s=subject.name))
 			if context.include_subjects is not None:
 				# print("test if subject excluded")
 				include = False
@@ -67,9 +66,10 @@ class System:
 						break
 
 				if not include:
-					# print("excluded")
-					logger.info("  excluded")
+					# logger.info("  excluded")
 					continue
+
+			logger.info("Subject {s}".format(s=subject.name))
 
 			# check if this subject has a unique list of tests defined in the config file
 			if subject.tests:

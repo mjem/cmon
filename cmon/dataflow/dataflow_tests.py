@@ -46,6 +46,9 @@ message_description_outage = MessageDescription(
 def measure_dataflow_outage(subject:Dataflow, context:Context):
 	"""Test if the last modification to any file in a dataflow is older than threshold."""
 	client = subject.server.ssh_connect()
+	if client is None:
+		return Measurement(state=MeasurementState.NOT_APPLICABLE)
+
 	sftp = client.open_sftp()
 	# sftp.chdir(target.directory)
 	matches = 0

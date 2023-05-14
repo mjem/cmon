@@ -66,7 +66,7 @@ def dev_license(c):
 
 def dev_venv(c):
 	"""Create venv with all packages to run, test and develop application."""
-	c.run("python3 -m venv {env}".format(env=env_dir))
+	c.run("python3 -m venv {env} --prompt cmon".format(env=env_dir))
 	c.run("{env}/bin/pip3 install --upgrade pip".format(env=env_dir))
 	c.run("{env}/bin/pip3 install -r requirements.txt".format(env=env_dir))
 	c.run("{env}/bin/pip3 install -r requirements-dev.txt".format(env=env_dir))

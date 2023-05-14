@@ -33,9 +33,9 @@ class Server(Testable):
 				 label:str,
 				 name:str=None,
 				 description:str=None,
-				 ssh_user:Union[str,Iterable[str]]=None,
-				 ssh_password:str=None,
-				 ssh_config:Union[str, Iterable[str]]=None,
+				 ssh_user:str=None,#1Union[str,Iterable[str]]=None,
+				 # ssh_password:str=None,
+				 # ssh_config:Union[str, Iterable[str]]=None,
 				 mounts:Iterable[Mount]=None,
 				 important:bool=True,
 				 docker_containers:Iterable[str]=None):
@@ -54,29 +54,32 @@ class Server(Testable):
 						 description=description,
 						 important=important)
 		self.hostname = hostname
-		if ssh_user is None:
-			self.ssh_user = []
+		# if ssh_user is None:
+			# self.ssh_user = []
 
-		elif is_listlike(ssh_user):
-			self.ssh_user = ssh_user
+		# elif is_listlike(ssh_user):
+			# self.ssh_user = ssh_user
 
-		else:
-			self.ssh_user = [ssh_user]
+		# else:
+			# self.ssh_user = [ssh_user]
 
-		if ssh_config is None:
-			self.ssh_config = []
+		# if ssh_config is None:
+			# self.ssh_config = []
 
-		elif is_listlike(ssh_config):
-			self.ssh_config = []
+		# elif is_listlike(ssh_config):
+			# self.ssh_config = []
 
-		else:
-			self.ssh_config = [ssh_config]
+		# else:
+			# self.ssh_config = [ssh_config]
+
+		self.ssh_user = ssh_user
 
 		self.mounts = mounts
-		self.ssh_user_clients = {}
-		self.ssh_config_clients = {}
+		self.ssh_user_client = None
+		# self.ssh_user_clients = {}
+		# self.ssh_config_clients = {}
 		self.docker_containers = docker_containers
-		self.ssh_password = ssh_password
+		# self.ssh_password = ssh_password
 
 	def __str__(self):
 		if self.label:
@@ -85,37 +88,39 @@ class Server(Testable):
 		else:
 			return "Server"
 
-	def ssh_connect_imp(self,
-						hostname,
-						username):
-		"""SSH connection implementation."""
-		result = paramiko.client.SSHClient()
-		result.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-		try:
-			logger.info("ssh connect to {host} as {user}".format(host=hostname, user=username))
-			result.connect(hostname, username=username)
-		except paramiko.ssh_exception.AuthenticationException as e:
-			raise ConnectionException(str(e)) from e
+	# def ssh_connect_imp(self,
+	# 					hostname,
+	# 					username):
+	# 	"""SSH connection implementation."""
+	# 	result = paramiko.client.SSHClient()
+	# 	result.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+	# 	try:
+	# 		logger.info("ssh connect to {host} as {user}".format(host=hostname, user=username))
+	# 		result.connect(hostname, username=username)
+	# 	except paramiko.ssh_exception.AuthenticationException as e:
+	# 		raise ConnectionException(str(e)) from e
 
-		return result
+	# 	return result
 
-	def ssh_connect_user(self,
-						 ssh_user:str):
-		"""SSH connection using our `hostname` and a given `ssh_user`, cached."""
-		if ssh_user not in self.ssh_user_clients:
-			self.ssh_user_clients[ssh_user] = self.ssh_connect_imp(hostname=self.hostname,
-																   username=ssh_user)
+	# def ssh_connect_user(self,
+	# 					 ssh_user:str):
+	# 	"""SSH connection using our `hostname` and a given `ssh_user`, cached."""
+	# 	if ssh_user not in self.ssh_user_clients:
+	# 		self.ssh_user_clients[ssh_user] = self.ssh_connect_imp(hostname=self.hostname,
+	# 															   username=ssh_user)
 
-		return self.ssh_user_clients[ssh_user]
+	# 	return self.ssh_user_clients[ssh_user]
 
-	def ssh_connect_config(self,
-						   ssh_config:str):
-		"""SSH connection using a named ssh config file specification, cached."""
-		raise NotImplementedError()
+	# def ssh_connect_config(self,
+	# 					   ssh_config:str):
+	# 	"""SSH connection using a named ssh config file specification, cached."""
+	# 	raise NotImplementedError()
 
 	def ssh_connect(self,
-					ssh_user:str=None,
-					ssh_config:str=None) -> Optional[paramiko.client.SSHClient]:
+					# ssh_user:str=None,
+					# ssh_config:str=None
+					# ) -> Optional[paramiko.client.SSHClient]:
+					) -> paramiko.client.SSHClient:
 		"""Return an ssh connection.
 
 		With no paramereters the best connection is selected.
@@ -127,23 +132,51 @@ class Server(Testable):
 
 		"""
 		# allow forced read of config information from ssh config file
-		if ssh_config is not None:
-			return self.ssh_connect_config(ssh_config)
+		# if ssh_config is not None:
+		# 	return self.ssh_connect_config(ssh_config)
 
-		# allow forced ssh username
-		if ssh_user is not None:
-			return self.ssh_connect_user(ssh_user)
+		# # allow forced ssh username
+		# if ssh_user is not None:
+		# 	return self.ssh_connect_user(ssh_user)
 
-		# fail by returning a null if we have no ssh config information
-		# (add test of ssh_config when implemented)
-		if len(self.ssh_config) > 0:
-			return self.ssh_connect_config(self.ssh_config[0])
+		# # fail by returning a null if we have no ssh config information
+		# # (add test of ssh_config when implemented)
+		# if len(self.ssh_config) > 0:
+		# 	return self.ssh_connect_config(self.ssh_config[0])
 
-		# use first defined `ssh_user`
-		if len(self.ssh_user) > 0:
-			return self.ssh_connect_user(self.ssh_user[0])
+		# # use first defined `ssh_user`
+		# if len(self.ssh_user) > 0:
+		# 	return self.ssh_connect_user(self.ssh_user[0])
 
-		return None
+		# return None
+
+		if self.ssh_user is None:
+			# no ssh connection configured
+			return None
+
+		# cached failure
+		if self.ssh_user_client is False:
+			return None
+
+		if self.ssh_user_client is not None:
+			return self.ssh_user_client
+
+		result = paramiko.client.SSHClient()
+		# result.load_system_host_keys()
+		result.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+		# pkey = paramiko.RSAKey.from_private_key_file("/tcenas/home/elson/.ssh/id_rsa")
+		try:
+			logger.info("ssh connect as {user} to {host}".format(host=self.hostname, user=self.ssh_user))
+			result.connect(self.hostname, username=self.ssh_user)
+						   # , pkey=pkey)
+			# , look_for_keys=False)
+		except paramiko.ssh_exception.AuthenticationException as e:
+			logger.warn("ssh connect failed {e}".format(e=e))
+			self.ssh_user_client = False
+			raise ConnectionException(str(e)) from e
+
+		self.ssh_user_client = result
+		return result
 
 	def get_id(self) -> str:
 		if self.name:
