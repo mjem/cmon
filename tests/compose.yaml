@@ -3,7 +3,7 @@ version: '2'
 services:
   website:
     image: nginx:1
-    container_name: cmon_website
+    container_name: cmon-website
     volumes:
       - ./httpserver:/usr/share/nginx/html
     # networks:
@@ -13,7 +13,7 @@ services:
       cmon.description: "Basic static webserver"
   database:
     image: postgres
-    container_name: cmon_database
+    container_name: cmon-database
     # networks:
       # dock_net2:
         # ipv4_address: 192.168.4.11
@@ -28,7 +28,7 @@ services:
   ssh:
     image: cmon/sshserver:latest
     build: sshserver
-    container_name: cmon_ssh
+    container_name: cmon-ssh
     # networks:
       # dock_net2:
         # ipv4_address: 192.168.4.12
