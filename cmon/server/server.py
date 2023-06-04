@@ -34,6 +34,7 @@ class Server(Testable):
 				 name:str=None,
 				 description:str=None,
 				 ssh_user:str=None,#1Union[str,Iterable[str]]=None,
+				 ssh_hack:str=None,
 				 # ssh_password:str=None,
 				 # ssh_config:Union[str, Iterable[str]]=None,
 				 mounts:Iterable[Mount]=None,
@@ -73,6 +74,7 @@ class Server(Testable):
 			# self.ssh_config = [ssh_config]
 
 		self.ssh_user = ssh_user
+		self.ssh_hack = ssh_hack
 
 		self.mounts = mounts
 		self.ssh_user_client = None
@@ -167,9 +169,17 @@ class Server(Testable):
 		# pkey = paramiko.RSAKey.from_private_key_file("/tcenas/home/elson/.ssh/id_rsa")
 		try:
 			logger.info("ssh connect as {user} to {host}".format(host=self.hostname, user=self.ssh_user))
-			result.connect(self.hostname, username=self.ssh_user)
-						   # , pkey=pkey)
+			if self.ssh_hack is None:
+				result.connect(self.hostname, username=self.ssh_user)
+
+			elif self.ssh_hack == "disabled_algorithms_pubkeys_rsa_sha2_256_rsa_sha2_512":
+				result.connect(self.hostname,
+							   username=self.ssh_user,
+							   disabled_algorithms={'pubkeys': ['rsa-sha2-256', 'rsa-sha2-512']})
+
+				# , pkey=pkey)
 			# , look_for_keys=False)
+
 		except paramiko.ssh_exception.AuthenticationException as e:
 			logger.warn("ssh connect failed {e}".format(e=e))
 			self.ssh_user_client = False

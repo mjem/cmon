@@ -38,55 +38,78 @@ logger = logging.getLogger("database")
 # Timeseries check
 
 
-def measure_backend_recent_job(
-		activities:Iterable[str],
-		threshold:timedelta,
-		job_sidnum_filter:int=None):
-	"""Basic jobs check, throw error if no job within timerange
-	"""
-	@measure(
-		name="recentjob",
-		label="Recent jobs",
-		description="Check jobs have been successfully executed without recent time limit",
-		subject_type=Backend,
-		messages=[
-			MessageDescription(
-				name="recent",
-				label="Most recent job",
-				description="Age of most recently executed matching job",
-				datatype=timedelta)
-		]
-	)
-	def imp(subject:Backend, context:Context) -> Measurement:
-		conn = subject.database.connect()
-		result = Measurement()
+		# activities:Iterable[str],
+		# threshold:timedelta,
+		# job_sidnum_filter:int=None):
+@measure(
+	label="Jobs",
+	name="jobs",
+	description="Scan jobs table for issues",
+	subject_type=Backend,
+	messages=[
+		MessageDescription(
+			name="recent",
+			label="Most recent job",
+			description="Age of most recently executed matching job",
+			datatype=timedelta,
+			multiple=dict),
+		MessageDescription(
+			name="failed",
+			label="Failed jobs",
+			description="Count of recent failed jobs",
+			datatype=timedelta,
+			multiple=dict),
+		MessageDescription(
+			name="errors",
+			label="Log file errors",
+			description="Total logged errors for recent jobs",
+			datatype=timedelta,
+			multiple=dict),
+	]
+)
+def measure_backend_jobs(subject:Backend, context:Context):
+	conn = subject.database.connect()
+	result = Measurement(state=MeasurementState.GOOD)
+	for expected_jobs in subject.expected_jobs:
 		where_clauses = []
 		bindvars = {}
-		if job_sidnum_filter is not None:
-			where_clauses.append("jobs.sid_num=:sidnum")
-			bindvars["sidnum"] = job_sidnum_filter
+		for f in expected_jobs["filters"]:
+			where_clauses.append(f)
 
-		# where_clauses.append("jobs.activity in :activities")
-		# bindvars["activities"] = tuple(activities)
-		activity_clauses = []
-		for a in activities:
-			bindvars["activity{cc}".format(cc=len(activity_clauses))] = a
-			activity_clauses.append("jobs.activity=:activity{cc}".format(cc=len(activity_clauses)))
+		where_clauses.append("activity=:activity")
+		bindvars["activity"] = expected_jobs["activity"]
 
-		where_clauses.append("({clauses})".format(clauses=" OR ".join(activity_clauses)))
+		sql = "SELECT max({field}) FROM jobs WHERE {where}".format(
+			field=expected_jobs["field"],
+			where=" AND ".join(where_clauses))
+	# bindvars["sidnum"] = job_sidnum_filter
+		cursor = conn.execute(sqlalchemy.text(sql), bindvars)
+		last_gen_time = cursor.fetchone()[0]
+		logger.info('last gen time {l}'.format(l=last_gen_time))
 
-		where_clauses.append("jobs.process_id=processes.id")
+		# delay = datetime.utcnow() - last_gen_time
 
-		where_clauses.append("jobs.gen_time>:mintime")
-		bindvars["mintime"] = datetime.utcnow() - threshold
+		result.add_message(
+			Message(name="recent",
+					parameter=expected_jobs["activity"],
+					value=last_gen_time),
+			)
 
-		if len(where_clauses) == 0:
-			where = ""
+		cursor.close()
 
-		else:
-			where = " WHERE {clauses}".format(clauses=" AND ".join(where_clauses))
+	conn.close()
+	# activity_clauses = []
+	# for a in activities:
+	# 	where_clauses.append("jobs.gen_time>:mintime")
+	# 	bindvars["mintime"] = datetime.utcnow() - threshold
 
-		sql = "SELECT jobs.id, processes.execute_stop, jobs.status FROM processes, jobs{where}".format(where=where)
+	# 	if len(where_clauses) == 0:
+	# 		where = ""
+
+	# 	else:
+	# 		where = " WHERE {clauses}".format(clauses=" AND ".join(where_clauses))
+
+	# 	sql = "SELECT jobs.id, processes.execute_stop, jobs.status FROM processes, jobs{where}".format(where=where)
 		# sql="SELECT min(latency) min,avg(latency) avg,max(latency) max "\
 			# "FROM "\
 			# "(SELECT p.execute_stop-j.sensing_start AS latency FROM jobs j, processes p "\
@@ -99,38 +122,9 @@ def measure_backend_recent_job(
 			# "yesterday": datetime.utcnow().date() - timedelta(days=1),
 			# "yesterday1": datetime.utcnow().date() - timedelta(days=2),
 		# }
-		cursor = conn.execute(sqlalchemy.text(sql), bindvars)
+		# cursor = conn.execute(sqlalchemy.text(sql), bindvars)
 
-		most_recent = None
 
-		result = Measurement(MeasurementState.GOOD)
-		for job_id, execution_stop, status in cursor:
-			if status != "COMPLETED":
-				result.add_message(Message("recent", error="Job {id} failed".format(id=job_id)))
-				result.state = MeasurementState.FAILED
-				return result
+	
+	return result
 
-			if most_recent is None:
-				most_recent = execution_stop
-
-			else:
-				most_recent = max(most_recent, execution_stop)
-
-		if most_recent is None:
-			result.add_message(Message("recent", error="No recent jobs"))
-			result.state = MeasurementState.FAILED
-			return result
-
-		# row = cursor.fetchone()
-		# for cc, column_name in enumerate(cursor.keys()):
-			# result.add_message(name + '.' + column_name, row[cc])
-			# if row[cc] and row[cc] < min_count:
-		# result.state = MeasurementState.FAILED
-
-		result.add_message(Message("recent", most_recent))
-
-		return result
-
-	# imp.label = label
-	# imp.decorator = measure_backend_job_latency.decorator
-	return imp

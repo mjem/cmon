@@ -86,6 +86,7 @@ class System:
 
 				logger.info("Test {t}".format(t=test.name))
 				measurement = test(subject=subject, context=context)
+				assert isinstance(measurement, Measurement)
 				measurement.subject = subject
 				measurement.test_fn = test
 				for message in measurement.messages:

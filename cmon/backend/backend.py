@@ -44,20 +44,22 @@ class Backend(Testable):
 				   "providing a website")
 
 	def __init__(self,
-				 database: Database = None,
-				 server: Server = None,
-				 dataflows: Iterable[Dataflow] = None,
+				 database: Database=None,
+				 server: Server=None,
+				 dataflows: Iterable[Dataflow]=None,
 				 # jobs: Union[BackendJobsTest, Iterable[BackendJobsTest]]=None,
 				 # events: Iterable[BackendEvents]=[],
 				 # flows: Iterable[BackendFlow]=[],
 				 # db_tests: Iterable[BackendDb]=[],
-				 label: str = None,
-				 important: bool = True,
-				 description: str = None,
-				 tests: Iterable[Measurement] = None):
+				 expected_jobs: Iterable[dict]=None,
+				 label: str=None,
+				 important: bool=True,
+				 description: str=None,
+				 tests: Iterable[Measurement]=None):
 		super().__init__(label=label, description=description, important=important, tests=tests)
 		self.database = database
 		self.server = server
+		self.expected_jobs = expected_jobs
 		if dataflows is None:
 			self.dataflows = []
 

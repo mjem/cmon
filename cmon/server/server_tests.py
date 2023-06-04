@@ -39,7 +39,7 @@ NEWLINE = "\n"
 			unit="ms",
 			sf=4,
 			datatype=float,
-			multiple=dict)
+			multiple=dict),
 	]
 )
 def measure_server_ping(subject:Server, context:Context):
