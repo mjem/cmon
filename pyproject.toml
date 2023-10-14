@@ -86,3 +86,15 @@ no_implicit_optional=false
 [tool.mccabe]
 min=5
 # mccabe: too-many-branches
+
+[tool.pycodestyle]
+max-line-length=100
+# W191 indentation contains tabs
+# E101 indentation conains mixes spaces and tabs
+# E128 continuation line under-indented for visual indent
+# E114: indentation is not a multiple of 4 (comment)
+# E116: unexpected indentation (comment)
+ignore=W191,E101,E128,E114,E116
+
+[tool.mypy]
+no_implicit_optional = False
